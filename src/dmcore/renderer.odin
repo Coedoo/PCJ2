@@ -15,7 +15,6 @@ import "core:mem"
 // import imgLoader "core:image"
 import "core:image/png"
 
-
 TexHandle :: distinct Handle
 ShaderHandle :: distinct Handle
 BatchHandle :: distinct Handle
@@ -239,7 +238,21 @@ PrimitiveBatch :: struct {
     index: int,
 }
 
-DrawLine :: proc(ctx: ^RenderContext, a, b: v3, color: color = RED) {
+DrawLine :: proc{
+    DrawLine3D,
+    DrawLine2D,
+}
+
+DrawLine2D :: proc(ctx: ^RenderContext, a, b: v2, color: color = RED) {
+    using ctx.debugBatch
+
+    buffer[index + 0] = {v3Conv(a), color}
+    buffer[index + 1] = {v3Conv(b), color}
+
+    index += 2
+}
+
+DrawLine3D :: proc(ctx: ^RenderContext, a, b: v3, color: color = RED) {
     using ctx.debugBatch
 
     buffer[index + 0] = {a, color}
@@ -298,5 +311,14 @@ DrawCircle :: proc(ctx: ^RenderContext, pos: v2, radius: f32, color: color = GRE
         buffer[index + 1] = {posB, color}
         index += 2
     }
+}
 
+DrawRay :: proc{
+    DrawRay2D,
+    // DrawRay3D
+}
+
+DrawRay2D :: proc(ctx: ^RenderContext, ray: Ray2D, distance: f32 = 1., color := GREEN) {
+    dir := math.normalize(ray.direction) * distance
+    DrawLine(ctx, ray.origin, ray.origin + dir, color)
 }

@@ -84,6 +84,16 @@ WorldToClipSpace :: proc(camera: Camera, point: v3) -> v3 {
     return p.xyz
 }
 
+ScreenToWorldSpace :: proc(camera: Camera, point: iv2, screenSize: iv2) -> v3 {
+    clip := v2{f32(point.x) / f32(screenSize.x), f32(point.y) / f32(screenSize.y)}
+    clip = clip * 2 - 1
+
+    vp := GetVPMatrix(camera)
+    p := math.inverse(vp) * v4{clip.x, -clip.y, -1, 1}
+
+    return v3{p.x, p.y, p.z}
+}
+
 ControlCamera :: proc(camera: ^Camera, input: ^Input, timeDelta: f32) {
     horizontal := GetAxis(input, .A, .D)
     vertical   := GetAxis(input, .W, .S)

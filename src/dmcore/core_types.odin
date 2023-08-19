@@ -41,6 +41,15 @@ Bounds2D :: struct {
     bot, top: f32,
 }
 
+Ray :: struct {
+    origin, direction: v3
+}
+
+Ray2D :: struct {
+    origin, direction: v2,
+    invDir: v2,
+}
+
 CreateBounds :: proc(pos: v2, size: v2, anchor: v2 = {0.5, 0.5}) -> Bounds2D {
     anchor := math.saturate(anchor)
 
@@ -49,6 +58,22 @@ CreateBounds :: proc(pos: v2, size: v2, anchor: v2 = {0.5, 0.5}) -> Bounds2D {
         right = pos.x + size.x * (1 - anchor.x),
         bot   = pos.y - size.y * anchor.y,
         top   = pos.y + size.y * (1 - anchor.y),
+    }
+}
+
+CreateRay2D :: proc(pos: v2, dir: v2) -> Ray2D {
+    d := math.normalize(dir)
+    return {
+        pos, d, 1 / d,
+    }
+}
+
+Ray2DFromTwoPoints :: proc(a, b: v2) -> Ray2D {
+    delta := math.normalize(b - a)
+    return {
+        a,
+        delta,
+        1 / delta,
     }
 }
 

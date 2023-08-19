@@ -77,6 +77,24 @@ DrawRect :: proc(ctx: ^RenderContext, texture: TexHandle,
     append(&ctx.commandBuffer.commands, cmd)
 }
 
+DrawRectNoTexture :: proc(ctx: ^RenderContext, position: v2, size: v2, color := WHITE) {
+    cmd: DrawRectCommand
+
+    texture := ctx.whiteTexture
+    texSize :=  GetTextureSize(ctx, texture)
+
+    cmd.position = position
+    cmd.size = size
+    cmd.source = {0, 0, texSize.x, texSize.y}
+    cmd.tint = color
+    cmd.pivot = {0.5, 0.5}
+
+    cmd.texture = texture
+    cmd.shader =  ctx.defaultShaders[.Sprite]
+
+    append(&ctx.commandBuffer.commands, cmd)
+}
+
 DrawRectSimple :: proc(ctx: ^RenderContext, texture: TexHandle, position: v2, color: color = WHITE) {
     cmd: DrawRectCommand
 

@@ -11,6 +11,7 @@ import "core:math/linalg/glsl"
 EntityHandle :: distinct dm.Handle
 
 EntityFlag :: enum {
+    Collision,
 }
 
 ControlerType :: enum {
@@ -22,6 +23,10 @@ ControlerType :: enum {
 Entity :: struct {
     flags: bit_set[EntityFlag],
     controler: ControlerType,
+
+    collisionSize: v2,
+
+    sprite: dm.Sprite,
 }
 
 
@@ -73,5 +78,5 @@ ControlPlayer :: proc(player: ^Entity) {
 }
 
 HandlePlayerDeath :: proc(player: ^Entity) {
-    
+
 }
