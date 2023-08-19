@@ -15,12 +15,16 @@ import "core:math/linalg/glsl"
 v2  :: dm.v2
 iv2 :: dm.iv2
 
+pixelmaFile := #load("../../assets/pixelma.png")
+
 GameState :: struct {
     entities: dm.ResourcePool(Entity, EntityHandle),
 
     playerHandle: EntityHandle,
 
     camera: dm.Camera,
+
+    pixelmaTex: dm.TexHandle,
 }
 
 gameState: ^GameState
@@ -49,9 +53,13 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     gameState = dm.AlocateGameData(platform, GameState)
     dm.InitResourcePool(&gameState.entities, 1024)
 
-    gameState.camera = dm.CreateCamera(5, 800./600., 0.01, 100)
+    gameState.pixelmaTex = dm.LoadTextureFromMemory(pixelmaFile, globals.renderCtx)
+    
+    /////
+    gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
 
     CreateWall({0, -3}, {5, 1})
+    CreateWall({0, -5}, {20, 1})
     CreateWall({-3, 1}, {1, 4})
     CreateWall({3, 1}, {1, 4})
 
@@ -69,11 +77,39 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         }
     }
 
+    player := dm.GetElement(gameState.entities, gameState.playerHandle)
+    // Control Camera
+
+    if player != nil {
+        camPos := cast(v2) gameState.camera.position.xy
+        using focusBox := dm.CreateBounds(camPos, cameraFocusBoxSize)
+
+        boxWidth  := right - left
+        boxHeight := top - bot
+
+        dm.DrawBounds2D(renderCtx, focusBox, dm.RED)
+
+
+        if player.position.x > right {
+            camPos.x = player.position.x - boxWidth / 2 
+        }
+        else if player.position.x < left {
+            camPos.x = player.position.x + boxWidth / 2 
+        }
+
+        if player.position.y > top {
+            camPos.y = player.position.y - boxHeight / 2 
+        }
+        else if player.position.y < bot {
+            camPos.y = player.position.y + boxHeight / 2 
+        }
+
+        gameState.camera.position.xy = cast([2]f32) camPos
+    }
 
     if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
         defer dm.muiEndWindow(mui)
             
-        player := dm.GetElement(gameState.entities, gameState.playerHandle)
         if player != nil {
             dm.muiLabel(mui, player.velocity)
         }
@@ -99,6 +135,10 @@ GameRender : dm.GameRender : proc(state: rawptr) {
         if .RenderTexture in e.flags {
             // @TEMP
             dm.DrawRectNoTexture(renderCtx, e.position, e.size, e.tint)
+        }
+
+        if .RenderSprite in e.flags {
+            dm.DrawSprite(renderCtx, e.sprite, e.position, 0, e.tint)
         }
     }
 }

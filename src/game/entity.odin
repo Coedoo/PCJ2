@@ -32,9 +32,13 @@ Entity :: struct {
     sprite: dm.Sprite,
     tint: dm.color,
 
+    facingDir: f32,
+
     // physics
     collisionSize: v2,
     velocity: v2,
+
+    wallClingTimer: f32,
 
     collTop:   bool,
     collBot:   bool,

@@ -4,19 +4,25 @@ import dm "../dmcore"
 import "../dmcore/globals"
 
 import "core:math"
+import "core:math/linalg/glsl"
 
 import "core:fmt"
 
 CreatePlayerEntity :: proc() -> EntityHandle {
     player, handle := CreateEntity()
 
-    player.flags = { .RenderTexture }
+    player.flags = { .RenderSprite }
 
-    player.tint = dm.BLUE
+    // player.tint = dm.BLUE
     player.controler = .Player
 
-    player.size = {1, 1}
-    player.collisionSize = {1, 1}
+    player.size = {1, 2}
+    player.collisionSize = {1, 2}
+    player.sprite.origin = {0.5, 0}
+
+    player.facingDir = 1
+
+    player.sprite = dm.CreateSprite(gameState.pixelmaTex, {0, 0, 32, 64})
 
     return handle
 }
@@ -31,7 +37,13 @@ ControlPlayer :: proc(player: ^Entity) {
     input := dm.GetAxisInt(globals.input, .Left, .Right)
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
 
-    velocity.x = f32(input) * playerSpeed
+    if input != 0 {
+    }
+
+    targetVelX := f32(input) * playerSpeed 
+
+    velocity.x = math.lerp(velocity.x, targetVelX, 20 * globals.time.deltaTime)
+    // velocity.x = targetVelX
     velocity.y += gravity * globals.time.deltaTime
 
     wallSlide := (collLeft || collRight) && collBot == false
@@ -39,17 +51,20 @@ ControlPlayer :: proc(player: ^Entity) {
         velocity.y = -min(-velocity.y, wallSlideSpeed)
     }
 
-    // @TODO: velocity smoothing
     if doJump {
         if wallSlide {
             wallDir := collLeft ? -1 : 1
 
             velocity.y = wallClimbSpeed.y
-            velocity.x *= f32(wallDir)
+            velocity.x = -f32(wallDir) * 20
         }
         else if collBot {
             velocity.y = jumpSpeed
         }
+    }
+
+    if velocity.x != 0 {
+        facingDir = math.sign(velocity.x)
     }
 
     collTop   = false
@@ -91,7 +106,7 @@ ControlPlayer :: proc(player: ^Entity) {
     }
 
     /// Horizontal Collisions
-    dir = math.sign(velocity.x)
+    dir = facingDir
 
     rayOrigin.x = dir == 1 ? bounds.right : bounds.left
     rayOrigin.y = bounds.bot
@@ -100,6 +115,10 @@ ControlPlayer :: proc(player: ^Entity) {
 
     step = (bounds.top - bounds.bot - skinWidth) / (raysPerCharacter - 1)
     rayLength = abs(velocity.x) * globals.time.deltaTime + skinWidth
+
+    if rayLength < skinWidth {
+        rayLength = skinWidth * 2
+    }
 
     for i in 0..<raysPerCharacter {
         hit, dist := Raycast(ray, rayLength)

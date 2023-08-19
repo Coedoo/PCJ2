@@ -287,6 +287,21 @@ DrawBox2D :: proc(ctx: ^RenderContext, pos, size: v2, color: color = GREEN) {
     index += 8
 }
 
+DrawBounds2D :: proc(ctx: ^RenderContext, bounds: Bounds2D, color := GREEN) {
+    pos := v2{
+        bounds.left + (bounds.right - bounds.left) / 2,
+        bounds.bot  + (bounds.top - bounds.bot) / 2,
+    }
+
+    size := v2{
+        (bounds.right - bounds.left),
+        (bounds.top - bounds.bot),
+    }
+
+    DrawBox2D(ctx, pos, size, color)
+}
+
+
 DrawCircle :: proc(ctx: ^RenderContext, pos: v2, radius: f32, color: color = GREEN) {
     using ctx.debugBatch
 

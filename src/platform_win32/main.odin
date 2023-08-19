@@ -197,6 +197,7 @@ main :: proc() {
                 dm.muiLabel(mui, "GameTime:", time.gameTime)
 
                 dm.muiLabel(mui, "Frame:", time.frame)
+                dm.muiLabel(mui, "FPS:", 1 / time.deltaTime)
 
                 if dm.muiButton(mui, "Play" if pauseGame else "Pause") {
                     pauseGame = !pauseGame

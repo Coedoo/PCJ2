@@ -77,6 +77,7 @@ Ray2DFromTwoPoints :: proc(a, b: v2) -> Ray2D {
     }
 }
 
+
 ///////////
 
 TimeData :: struct {

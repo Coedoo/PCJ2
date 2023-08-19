@@ -85,6 +85,6 @@ RaycastAABB2D :: proc(ray: Ray2D, aabb: Bounds2D, distance := max(f32)) -> (bool
     tMin = max(tMin, min(ty1, ty2))
     tMax = min(tMax, max(ty1, ty2))
 
-    return tMax >= tMin && tMax > 0 && tMin < distance, tMin
+    return tMax >= tMin && tMax > 0 && tMin > 0 && tMin < distance, tMin
 }
 

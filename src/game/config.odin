@@ -10,5 +10,7 @@ wallSlideSpeed :: 1
 
 wallClimbSpeed :: v2{7, 12}
 
-skinWidth :: 0.01
+skinWidth :: 0.02
 raysPerCharacter :: 3
+
+cameraFocusBoxSize :: v2{3, 4}
