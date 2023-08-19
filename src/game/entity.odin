@@ -84,7 +84,7 @@ HandleEntityDeath :: proc(entity: ^Entity) {
 
 ////////////
 
-CreateWall :: proc(pos, size: v2) {
+CreateWall :: proc(pos, size: v2, sprite: dm.Sprite) {
     wall, handle := CreateEntity()
 
     wall.position      = pos
@@ -94,5 +94,5 @@ CreateWall :: proc(pos, size: v2) {
     wall.flags = { .Wall, .RenderTexture }
 
     wall.sprite = dm.CreateSprite(globals.renderCtx.whiteTexture, {0, 0, 1, 1})
-    wall.tint = {0.6, 0.6, 0.6, 1}
+    wall.tint = {0.2, 0.2, 0.2, 1}
 }

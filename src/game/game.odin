@@ -12,10 +12,14 @@ import globals "../dmcore/globals"
 
 import "core:math/linalg/glsl"
 
+import "../ldtk"
+
 v2  :: dm.v2
 iv2 :: dm.iv2
 
 pixelmaFile := #load("../../assets/pixelma.png")
+
+levelFile := #load("../../assets/level.json", []byte)
 
 GameState :: struct {
     entities: dm.ResourcePool(Entity, EntityHandle),
@@ -58,12 +62,36 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     /////
     gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
 
-    CreateWall({0, -3}, {5, 1})
-    CreateWall({0, -5}, {20, 1})
-    CreateWall({-3, 1}, {1, 4})
-    CreateWall({3, 1}, {1, 4})
+    // CreateWall({0, -3}, {5, 1})
+    // CreateWall({0, -5}, {20, 1})
+    // CreateWall({-3, 1}, {1, 4})
+    // CreateWall({3, 1}, {1, 4})
 
     gameState.playerHandle = CreatePlayerEntity()
+    player := dm.GetElement(gameState.entities, gameState.playerHandle)
+
+    player.position = {3, 10}
+
+    if project, ok := ldtk.load_from_memory(levelFile, context.temp_allocator).?; ok {
+        for level in project.levels {
+            for layer in level.layer_instances {
+                switch layer.type {
+                case .IntGrid:
+                    yOffset := layer.c_height * layer.grid_size
+                    for tile in layer.auto_layer_tiles {
+                        posX := f32(tile.px.x) / f32(layer.grid_size)
+                        posY := f32(-tile.px.y + yOffset) / f32(layer.grid_size)
+
+                        CreateWall({posX, posY}, {1, 1}, {})
+                    }
+
+                case .Entities:
+                case .Tiles:
+                case .AutoLayer:
+                }
+            }
+        }
+    }
 
 }
 
@@ -107,17 +135,35 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         gameState.camera.position.xy = cast([2]f32) camPos
     }
 
-    if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
-        defer dm.muiEndWindow(mui)
-            
-        if player != nil {
-            dm.muiLabel(mui, player.velocity)
-        }
-    }
+
 }
 
 @(export)
 GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
+    using globals
+
+    gameState.camera.orthoSize -= f32(globals.input.scroll)
+
+    if dm.GetMouseButton(globals.input, .Right) == .Down {
+        gameState.camera.position.xy -= cast([2]f32) dm.v2Conv(globals.input.mouseDelta) * 0.1
+    }
+
+    player := dm.GetElement(gameState.entities, gameState.playerHandle)
+
+    if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
+    defer dm.muiEndWindow(mui)
+        
+        if player != nil {
+            dm.muiLabel(mui, player.velocity)
+        }
+
+        for &e in gameState.entities.elements {
+            if .Wall in e.flags {
+                dm.muiLabel(mui, e.position)
+            }
+        }
+    }
+
 }
 
 
