@@ -11,7 +11,9 @@ import "core:math/linalg/glsl"
 EntityHandle :: distinct dm.Handle
 
 EntityFlag :: enum {
-    Collision,
+    Wall,
+    RenderSprite,
+    RenderTexture,
 }
 
 ControlerType :: enum {
@@ -24,9 +26,20 @@ Entity :: struct {
     flags: bit_set[EntityFlag],
     controler: ControlerType,
 
-    collisionSize: v2,
+    position: v2,
+    size: v2,
 
     sprite: dm.Sprite,
+    tint: dm.color,
+
+    // physics
+    collisionSize: v2,
+    velocity: v2,
+
+    collTop:   bool,
+    collBot:   bool,
+    collLeft:  bool,
+    collRight: bool,
 }
 
 
@@ -34,14 +47,14 @@ CreateEntityHandle :: proc() -> EntityHandle {
     return cast(EntityHandle) dm.CreateHandle(gameState.entities)
 }
 
-CreateEntity :: proc() -> ^Entity {
+CreateEntity :: proc() -> (^Entity, EntityHandle) {
     handle := CreateEntityHandle()
     assert(handle.index != 0)
 
     entity := dm.GetElement(gameState.entities, handle)
+    entity.tint = dm.WHITE
 
-
-    return entity
+    return entity, handle
 }
 
 DestroyEntity :: proc(handle: EntityHandle) {
@@ -67,16 +80,15 @@ HandleEntityDeath :: proc(entity: ^Entity) {
 
 ////////////
 
-CreatePlayerEntity :: proc() -> ^Entity {
-    player := CreateEntity()
+CreateWall :: proc(pos, size: v2) {
+    wall, handle := CreateEntity()
 
+    wall.position      = pos
+    wall.size          = size
+    wall.collisionSize = size
 
-    return player
-}
+    wall.flags = { .Wall, .RenderTexture }
 
-ControlPlayer :: proc(player: ^Entity) {
-}
-
-HandlePlayerDeath :: proc(player: ^Entity) {
-
+    wall.sprite = dm.CreateSprite(globals.renderCtx.whiteTexture, {0, 0, 1, 1})
+    wall.tint = {0.6, 0.6, 0.6, 1}
 }

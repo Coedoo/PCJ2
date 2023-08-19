@@ -70,7 +70,7 @@ CheckCollisionBoundsCircle :: proc(a: Bounds2D, bPos: v2, bRad: f32) -> bool {
 
 
 
-RayCastAABB2D :: proc(ray: Ray2D, aabb: Bounds2D, distance := max(f32)) -> (bool, f32) {
+RaycastAABB2D :: proc(ray: Ray2D, aabb: Bounds2D, distance := max(f32)) -> (bool, f32) {
     // https://tavianator.com/2011/ray_box.html
 
     tx1 := (aabb.left - ray.origin.x) * ray.invDir.x
@@ -81,7 +81,6 @@ RayCastAABB2D :: proc(ray: Ray2D, aabb: Bounds2D, distance := max(f32)) -> (bool
 
     ty1 := (aabb.bot - ray.origin.y) * ray.invDir.y
     ty2 := (aabb.top - ray.origin.y) * ray.invDir.y
-
 
     tMin = max(tMin, min(ty1, ty2))
     tMax = min(tMax, max(ty1, ty2))

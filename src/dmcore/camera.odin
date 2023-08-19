@@ -20,6 +20,7 @@ CreateCamera :: proc(orthoSize, aspect, near, far: f32) -> Camera {
         aspect = aspect,
         near = near,
         far = far,
+        position = {0, 0, 1},
     }
 }
 
