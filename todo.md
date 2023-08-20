@@ -3,7 +3,6 @@
 - Ability system (just flags that are set if we unlocked ability)
 
 = Abilities
- - Double Jump
  - Dash
 
 - Better movement

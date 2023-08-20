@@ -138,11 +138,6 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 GameUpdate : dm.GameUpdate : proc(state: rawptr) {
     using globals
 
-    // Global input
-    if dm.GetKeyState(input, .Up) == .JustPressed {
-        gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2
-    }
-
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
@@ -230,6 +225,10 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
         defer dm.muiEndWindow(mui)
         
         dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)
+
+        dm.muiToggle(mui, "doubleJump",  &gameState.playerState.doubleJump)
+        dm.muiToggle(mui, "wallClimb",   &gameState.playerState.wallClimb)
+        dm.muiToggle(mui, "worldSwitch", &gameState.playerState.worldSwitch)
     }
 
     for &e in gameState.entities.elements {

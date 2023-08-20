@@ -94,6 +94,10 @@ muiButton :: proc(mui:^Mui, label: string, icon: mu.Icon = .NONE, opt: mu.Option
     return mu.button(&mui.muiCtx, label, icon, opt) == {.SUBMIT}
 }
 
+muiToggle :: proc(using mui: ^Mui, label: string, state: ^bool) -> bool {
+    return mu.checkbox(&muiCtx, label, state) == {.CHANGE}
+}
+
 /// Input/Render
 muiRender :: proc(mui: ^Mui, renderCtx: ^dmcore.RenderContext) {
     ToColor :: proc(c: mu.Color) -> color {

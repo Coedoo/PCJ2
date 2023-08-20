@@ -27,6 +27,11 @@ PlayerState :: struct {
     movementState: PlayerMovementState,
 
     jumpsLeftCount: int,
+
+    // Abilities
+    doubleJump:  bool,
+    wallClimb:   bool,
+    worldSwitch: bool,
 }
 
 CreatePlayerEntity :: proc() -> EntityHandle {
@@ -57,6 +62,11 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     gravity   := -(2 * jumpHeight) / (jumpTime * jumpTime);
     jumpSpeed := -gravity * jumpTime;
 
+    // World Switch
+    if worldSwitch && dm.GetKeyState(globals.input, .Up) == .JustPressed {
+        gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2
+    }
+
     /// Input
     input := dm.GetAxisInt(globals.input, .Left, .Right)
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
@@ -67,7 +77,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     // velocity.x = targetVelX
     velocity.y += gravity * globals.time.deltaTime
 
-    wallSlide := (collLeft || collRight) && collBot == false
+    wallSlide := (collLeft || collRight) && collBot == false && playerState.wallClimb
     if wallSlide {
         velocity.y = -min(-velocity.y, wallSlideSpeed)
     }
@@ -183,7 +193,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     }
 
     if movementState != .Jump {
-        jumpsLeftCount = 2
+        jumpsLeftCount = doubleJump ? 2 : 1
     }
 }
 
