@@ -8,6 +8,14 @@ import "core:math/linalg/glsl"
 
 import "core:fmt"
 
+PlayerMovementState :: enum {
+    Idle,
+    Run,
+    Jump,
+    WallSlide,
+    Dash, // ??
+}
+
 PlayerState :: struct {
     wallClingTimer: f32,
 
@@ -16,6 +24,9 @@ PlayerState :: struct {
     collLeft:  bool,
     collRight: bool,
 
+    movementState: PlayerMovementState,
+
+    jumpsLeftCount: int,
 }
 
 CreatePlayerEntity :: proc() -> EntityHandle {
@@ -50,9 +61,6 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     input := dm.GetAxisInt(globals.input, .Left, .Right)
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
 
-    if input != 0 {
-    }
-
     targetVelX := f32(input) * playerSpeed 
 
     velocity.x = math.lerp(velocity.x, targetVelX, 20 * globals.time.deltaTime)
@@ -70,9 +78,12 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
 
             velocity.y = wallClimbSpeed.y
             velocity.x = -f32(wallDir) * 20
+
+            jumpsLeftCount -= 1
         }
-        else if collBot {
+        else if collBot || jumpsLeftCount > 0 {
             velocity.y = jumpSpeed
+            jumpsLeftCount -= 1
         }
     }
 
@@ -158,6 +169,22 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
         velocity.y = 0
     }
 
+    if wallSlide {
+        movementState = .WallSlide
+    }
+    else if collBot == false {
+        movementState = .Jump
+    }
+    else if velocity.x * velocity.x + velocity.y * velocity.y > math.F32_EPSILON {
+        movementState = .Run
+    }
+    else {
+        movementState = .Idle
+    }
+
+    if movementState != .Jump {
+        jumpsLeftCount = 2
+    }
 }
 
 HandlePlayerDeath :: proc(player: ^Entity) {

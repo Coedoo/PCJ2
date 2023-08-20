@@ -225,9 +225,11 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
+    // Debug Window
     if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
         defer dm.muiEndWindow(mui)
         
+        dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)
     }
 
     for &e in gameState.entities.elements {
