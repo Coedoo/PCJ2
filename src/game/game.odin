@@ -37,6 +37,7 @@ GameState :: struct {
     lastCheckpointPosition: v2,
     lastCheckpointHandle: EntityHandle,
 
+    playerState: PlayerState,
 }
 
 gameState: ^GameState
@@ -137,13 +138,15 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 GameUpdate : dm.GameUpdate : proc(state: rawptr) {
     using globals
 
-    if dm.GetKeyState(input, .LCtrl) == .JustPressed {
-        gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2   
+    // Global input
+    if dm.GetKeyState(input, .Up) == .JustPressed {
+        gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2
     }
 
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
+    // player collisions
     if player != nil {
         for &e in gameState.entities.elements {
             if dm.IsHandleValid(gameState.entities, e.handle) == false {
@@ -151,8 +154,8 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
             }
 
             if .Trigger in e.flags {
-                aBounds := dm.CreateBounds(e.position, e.collisionSize)
-                bBounds := dm.CreateBounds(player.position, player.collisionSize)
+                aBounds := dm.CreateBounds(e.position, e.collisionSize, e.pivot)
+                bBounds := dm.CreateBounds(player.position, player.collisionSize, player.pivot)
 
                 if dm.CheckCollisionBounds(aBounds, bBounds) {
                     switch e.triggerType {
@@ -223,7 +226,7 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
     if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
-    defer dm.muiEndWindow(mui)
+        defer dm.muiEndWindow(mui)
         
     }
 
@@ -232,10 +235,10 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
             continue
         }
 
-        dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.LIME)
+        dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.BLACK)
 
         if .Trigger in e.flags {
-            dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.DARKGREEN)
+            dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.RED)
         }
     }
 }
@@ -252,10 +255,9 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
 
     for e in gameState.entities.elements {
-        // if .RenderTexture in e.flags {
-        //     // @TEMP
-        //     dm.DrawRectNoTexture(renderCtx, e.position, e.size, e.tint)
-        // }
+        if dm.IsHandleValid(gameState.entities, e.handle) == false {
+            continue
+        }
 
         if .RenderSprite in e.flags
         {

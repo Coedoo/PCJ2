@@ -8,6 +8,16 @@ import "core:math/linalg/glsl"
 
 import "core:fmt"
 
+PlayerState :: struct {
+    wallClingTimer: f32,
+
+    collTop:   bool,
+    collBot:   bool,
+    collLeft:  bool,
+    collRight: bool,
+
+}
+
 CreatePlayerEntity :: proc() -> EntityHandle {
     player, handle := CreateEntity()
 
@@ -18,17 +28,20 @@ CreatePlayerEntity :: proc() -> EntityHandle {
 
     player.size = {1, 2}
     player.collisionSize = {1, 2}
-    player.sprite.origin = {0.5, 0}
 
     player.facingDir = 1
 
     player.sprite = dm.CreateSprite(gameState.pixelmaTex, {0, 0, 32, 64})
+    player.sprite.origin = {0.5, 1}
+
+    player.pivot = {0.5, 0}
 
     return handle
 }
 
-ControlPlayer :: proc(player: ^Entity) {
+ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     using player
+    using playerState
 
     gravity   := -(2 * jumpHeight) / (jumpTime * jumpTime);
     jumpSpeed := -gravity * jumpTime;
@@ -75,7 +88,7 @@ ControlPlayer :: proc(player: ^Entity) {
     /// Collisions
     move := velocity * globals.time.deltaTime
 
-    bounds := dm.CreateBounds(position, collisionSize)
+    bounds := dm.CreateBounds(position, collisionSize, pivot)
 
     /// Vertical Collisions
     dir := math.sign(velocity.y)

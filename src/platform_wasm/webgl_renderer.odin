@@ -74,7 +74,7 @@ InitRenderContext :: proc(ctx: ^dm.RenderContext) {
     ctx.whiteTexture = CreateTexture(texData, 1, 1, 4, ctx)
 
     CreateRectBatch(ctx, &ctx.defaultBatch, 2048)
-    CreatePrimitiveBatch(ctx, 1024)
+    CreatePrimitiveBatch(ctx, 2048)
 
     ctx.frameSize = {800, 600}
 

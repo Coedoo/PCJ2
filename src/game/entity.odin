@@ -42,6 +42,7 @@ Entity :: struct {
 
     position: v2,
     size: v2,
+    pivot: v2,
 
     sprite: dm.Sprite,
     tint: dm.color,
@@ -53,13 +54,6 @@ Entity :: struct {
     // physics
     collisionSize: v2,
     velocity: v2,
-
-    wallClingTimer: f32,
-
-    collTop:   bool,
-    collBot:   bool,
-    collLeft:  bool,
-    collRight: bool,
 }
 
 
@@ -74,6 +68,7 @@ CreateEntity :: proc() -> (^Entity, EntityHandle) {
     entity := dm.GetElement(gameState.entities, handle)
     entity.handle = handle
     entity.tint = dm.WHITE
+    entity.pivot = {0.5, 0.5}
 
     return entity, handle
 }
@@ -87,7 +82,7 @@ DestroyEntity :: proc(handle: EntityHandle) {
 
 ControlEntity :: proc(entity: ^Entity) {
     switch entity.controler {
-        case .Player: ControlPlayer(entity)
+        case .Player: ControlPlayer(entity, &gameState.playerState)
         case .None: // ignore
     }
 }
