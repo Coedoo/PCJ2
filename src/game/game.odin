@@ -122,6 +122,8 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                                 }
                             }
 
+                            e.collisionSize = {1, 1}
+
                             // fmt.println(entity)
                         }
                     }
@@ -142,31 +144,12 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
-    // for ai := 0; ai < len(gameState.entities.elements); ai += 1 {
-    //     a := &gameState.entities.elements[ai]
-
-    //     if .Collision not_in a.flags {
-    //         continue
-    //     }
-
-    //     for bi := ai + 1; bi < len(gameState.entities.elements); bi += 1 {
-    //         b := &gameState.entities.elements[bi]
-
-    //         if .Collision not_in b.flags {
-    //             continue
-    //         }
-
-    //         aBounds := dm.CreateBounds(a.position, a.collisionSize)
-    //         bBounds := dm.CreateBounds(b.position, b.collisionSize)
-
-    //         if dm.CheckCollisionBounds(aBounds, bBounds) {
-
-    //         }
-    //     }
-    // }
-
     if player != nil {
         for &e in gameState.entities.elements {
+            if dm.IsHandleValid(gameState.entities, e.handle) == false {
+                continue
+            }
+
             if .Trigger in e.flags {
                 aBounds := dm.CreateBounds(e.position, e.collisionSize)
                 bBounds := dm.CreateBounds(player.position, player.collisionSize)
@@ -176,7 +159,7 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                     case .None:
                     case .Checkpoint: {
                         gameState.lastCheckpointPosition = e.position
-                        // gameSatte.lastCheckpointHandle = e.handle
+                        gameState.lastCheckpointHandle = e.handle
                     }
                     case .Damageable: {
                         player.position = gameState.lastCheckpointPosition
@@ -188,6 +171,10 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
     }
 
     for &e in gameState.entities.elements {
+        if dm.IsHandleValid(gameState.entities, e.handle) == false {
+            continue
+        }
+
         if e.controler != .None {
             ControlEntity(&e)
         }
@@ -238,17 +225,19 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
     if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
     defer dm.muiEndWindow(mui)
         
-        if player != nil {
-            dm.muiLabel(mui, player.velocity)
-        }
-
-        for &e in gameState.entities.elements {
-            if .Wall in e.flags {
-                dm.muiLabel(mui, e.sprite.atlasPos)
-            }
-        }
     }
 
+    for &e in gameState.entities.elements {
+        if dm.IsHandleValid(gameState.entities, e.handle) == false {
+            continue
+        }
+
+        dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.LIME)
+
+        if .Trigger in e.flags {
+            dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.DARKGREEN)
+        }
+    }
 }
 
 

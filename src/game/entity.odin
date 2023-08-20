@@ -34,6 +34,7 @@ LevelLayer :: enum {
 }
 
 Entity :: struct {
+    handle: EntityHandle,
     flags: bit_set[EntityFlag],
     controler: ControlerType,
 
@@ -71,6 +72,7 @@ CreateEntity :: proc() -> (^Entity, EntityHandle) {
     assert(handle.index != 0)
 
     entity := dm.GetElement(gameState.entities, handle)
+    entity.handle = handle
     entity.tint = dm.WHITE
 
     return entity, handle

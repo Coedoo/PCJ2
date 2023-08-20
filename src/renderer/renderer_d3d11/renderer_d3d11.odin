@@ -175,7 +175,7 @@ CreateRenderContext :: proc(window: ^sdl.Window) -> ^dm.RenderContext {
     ctx.DrawBatch = DrawBatch
 
     CreateRectBatch(ctx, &ctx.defaultBatch, 1024)
-    CreatePrimitiveBatch(ctx, 1024)
+    CreatePrimitiveBatch(ctx, 4086)
 
     constBuffDesc := d3d11.BUFFER_DESC {
         ByteWidth = size_of(dm.mat4),
