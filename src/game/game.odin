@@ -18,6 +18,7 @@ v2  :: dm.v2
 iv2 :: dm.iv2
 
 pixelmaFile := #load("../../assets/pixelma.png")
+atlasFile := #load("../../assets/atlas.png")
 
 levelFile := #load("../../assets/level.json", []byte)
 
@@ -25,21 +26,24 @@ GameState :: struct {
     entities: dm.ResourcePool(Entity, EntityHandle),
 
     playerHandle: EntityHandle,
-
     camera: dm.Camera,
 
     pixelmaTex: dm.TexHandle,
+    atlasTex: dm.TexHandle,
+
+    activeLayer: LevelLayer,
+
+
+    lastCheckpointPosition: v2,
+    lastCheckpointHandle: EntityHandle,
+
 }
 
 gameState: ^GameState
 
-
-testSize :: v2{2, 1}
-testPos :: v2{0, 0}
-
-Raycast :: proc(ray: dm.Ray2D, maxDist: f32) -> (bool, f32) {
+Raycast :: proc(ray: dm.Ray2D, maxDist: f32, layer: LevelLayer) -> (bool, f32) {
     for e in gameState.entities.elements {
-        if .Wall in e.flags {
+        if .Wall in e.flags && e.levelLayer == .Base || e.levelLayer == layer {
             bounds := dm.CreateBounds(e.position, e.collisionSize)
             hit, dist := dm.RaycastAABB2D(ray, bounds, maxDist)
 
@@ -58,46 +62,130 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     dm.InitResourcePool(&gameState.entities, 1024)
 
     gameState.pixelmaTex = dm.LoadTextureFromMemory(pixelmaFile, globals.renderCtx)
+    gameState.atlasTex = dm.LoadTextureFromMemory(atlasFile, globals.renderCtx)
     
+    gameState.activeLayer = .L1
+
     /////
     gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
 
-    // CreateWall({0, -3}, {5, 1})
-    // CreateWall({0, -5}, {20, 1})
-    // CreateWall({-3, 1}, {1, 4})
-    // CreateWall({3, 1}, {1, 4})
-
-    gameState.playerHandle = CreatePlayerEntity()
-    player := dm.GetElement(gameState.entities, gameState.playerHandle)
-
-    player.position = {3, 10}
+    // player.position = {3, 10}
 
     if project, ok := ldtk.load_from_memory(levelFile, context.temp_allocator).?; ok {
         for level in project.levels {
             for layer in level.layer_instances {
-                switch layer.type {
-                case .IntGrid:
-                    yOffset := layer.c_height * layer.grid_size
-                    for tile in layer.auto_layer_tiles {
+                yOffset := layer.c_height * layer.grid_size
+
+                if layer.type == .Tiles || layer.type == .IntGrid {
+                    tiles := layer.type == .Tiles ? layer.grid_tiles : layer.auto_layer_tiles
+                    
+                    for tile in tiles {
                         posX := f32(tile.px.x) / f32(layer.grid_size)
                         posY := f32(-tile.px.y + yOffset) / f32(layer.grid_size)
 
-                        CreateWall({posX, posY}, {1, 1}, {})
+                        CreateWall(
+                            {posX, posY}, 
+                            dm.CreateSprite(gameState.atlasTex, {i32(tile.src.x), i32(tile.src.y), 16, 16}),
+                            layer.identifier
+                        )
                     }
+                }
 
-                case .Entities:
-                case .Tiles:
-                case .AutoLayer:
+                if layer.type == .Entities {
+                    for entity in layer.entity_instances {
+                        // fmt.println(entity)
+
+                        if entity.identifier == "Player" {
+                            gameState.playerHandle = CreatePlayerEntity()
+                            player := dm.GetElement(gameState.entities, gameState.playerHandle)
+                            player.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.grid_size)}
+
+                            gameState.lastCheckpointPosition = player.position
+                        }
+                        else {
+                            e, handle := CreateEntity()
+
+                            e.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.grid_size)}
+                            tileRect, ok := entity.tile.?
+                            if ok {
+                                e.sprite = dm.CreateSprite(gameState.atlasTex, 
+                                    {i32(tileRect.x), i32(tileRect.y), i32(tileRect.w), i32(tileRect.h)})                            
+                            }
+
+                            for tag in entity.tags {
+                                switch tag {
+                                case "RenderSprite": e.flags += { .RenderSprite }
+                                case "Trigger":      e.flags += { .Trigger }
+
+                                case "Checkpoint": e.triggerType = .Checkpoint
+                                case "Damageable": e.triggerType = .Damageable
+                                }
+                            }
+
+                            // fmt.println(entity)
+                        }
+                    }
                 }
             }
         }
     }
-
 }
 
 @(export)
 GameUpdate : dm.GameUpdate : proc(state: rawptr) {
     using globals
+
+    if dm.GetKeyState(input, .LCtrl) == .JustPressed {
+        gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2   
+    }
+
+
+    player := dm.GetElement(gameState.entities, gameState.playerHandle)
+
+    // for ai := 0; ai < len(gameState.entities.elements); ai += 1 {
+    //     a := &gameState.entities.elements[ai]
+
+    //     if .Collision not_in a.flags {
+    //         continue
+    //     }
+
+    //     for bi := ai + 1; bi < len(gameState.entities.elements); bi += 1 {
+    //         b := &gameState.entities.elements[bi]
+
+    //         if .Collision not_in b.flags {
+    //             continue
+    //         }
+
+    //         aBounds := dm.CreateBounds(a.position, a.collisionSize)
+    //         bBounds := dm.CreateBounds(b.position, b.collisionSize)
+
+    //         if dm.CheckCollisionBounds(aBounds, bBounds) {
+
+    //         }
+    //     }
+    // }
+
+    if player != nil {
+        for &e in gameState.entities.elements {
+            if .Trigger in e.flags {
+                aBounds := dm.CreateBounds(e.position, e.collisionSize)
+                bBounds := dm.CreateBounds(player.position, player.collisionSize)
+
+                if dm.CheckCollisionBounds(aBounds, bBounds) {
+                    switch e.triggerType {
+                    case .None:
+                    case .Checkpoint: {
+                        gameState.lastCheckpointPosition = e.position
+                        // gameSatte.lastCheckpointHandle = e.handle
+                    }
+                    case .Damageable: {
+                        player.position = gameState.lastCheckpointPosition
+                    }
+                    }
+                }
+            }
+        }
+    }
 
     for &e in gameState.entities.elements {
         if e.controler != .None {
@@ -105,7 +193,6 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         }
     }
 
-    player := dm.GetElement(gameState.entities, gameState.playerHandle)
     // Control Camera
 
     if player != nil {
@@ -134,8 +221,6 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
 
         gameState.camera.position.xy = cast([2]f32) camPos
     }
-
-
 }
 
 @(export)
@@ -159,7 +244,7 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
 
         for &e in gameState.entities.elements {
             if .Wall in e.flags {
-                dm.muiLabel(mui, e.position)
+                dm.muiLabel(mui, e.sprite.atlasPos)
             }
         }
     }
@@ -178,13 +263,19 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
 
     for e in gameState.entities.elements {
-        if .RenderTexture in e.flags {
-            // @TEMP
-            dm.DrawRectNoTexture(renderCtx, e.position, e.size, e.tint)
-        }
+        // if .RenderTexture in e.flags {
+        //     // @TEMP
+        //     dm.DrawRectNoTexture(renderCtx, e.position, e.size, e.tint)
+        // }
 
-        if .RenderSprite in e.flags {
-            dm.DrawSprite(renderCtx, e.sprite, e.position, 0, e.tint)
+        if .RenderSprite in e.flags
+        {
+            tint := e.tint
+            if e.levelLayer != gameState.activeLayer && e.levelLayer != .Base {
+                tint = dm.RED
+            }
+
+            dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
         }
     }
 }

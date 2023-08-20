@@ -90,7 +90,7 @@ ControlPlayer :: proc(player: ^Entity) {
     rayLength := abs(velocity.y) * globals.time.deltaTime + skinWidth
 
     for i in 0..<raysPerCharacter {
-        hit, dist := Raycast(ray, rayLength)
+        hit, dist := Raycast(ray, rayLength, gameState.activeLayer)
 
         dm.DrawRay(globals.renderCtx, ray, rayLength * 10, hit ? dm.RED : dm.GREEN)
 
@@ -121,7 +121,7 @@ ControlPlayer :: proc(player: ^Entity) {
     }
 
     for i in 0..<raysPerCharacter {
-        hit, dist := Raycast(ray, rayLength)
+        hit, dist := Raycast(ray, rayLength, gameState.activeLayer)
 
         dm.DrawRay(globals.renderCtx, ray, rayLength * 10, hit ? dm.RED : dm.GREEN)
 

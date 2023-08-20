@@ -13,7 +13,7 @@ EntityHandle :: distinct dm.Handle
 EntityFlag :: enum {
     Wall,
     RenderSprite,
-    RenderTexture,
+    Trigger,
 }
 
 ControlerType :: enum {
@@ -21,10 +21,23 @@ ControlerType :: enum {
     Player,
 }
 
+TriggerType :: enum {
+    None,
+    Checkpoint,
+    Damageable,
+}
+
+LevelLayer :: enum {
+    Base,
+    L1,
+    L2,
+}
 
 Entity :: struct {
     flags: bit_set[EntityFlag],
     controler: ControlerType,
+
+    levelLayer: LevelLayer,
 
     position: v2,
     size: v2,
@@ -33,6 +46,8 @@ Entity :: struct {
     tint: dm.color,
 
     facingDir: f32,
+
+    triggerType: TriggerType,
 
     // physics
     collisionSize: v2,
@@ -84,15 +99,19 @@ HandleEntityDeath :: proc(entity: ^Entity) {
 
 ////////////
 
-CreateWall :: proc(pos, size: v2, sprite: dm.Sprite) {
+CreateWall :: proc(pos: v2, sprite: dm.Sprite, layer: string) {
     wall, handle := CreateEntity()
 
     wall.position      = pos
-    wall.size          = size
-    wall.collisionSize = size
+    wall.collisionSize = {1, 1}
 
-    wall.flags = { .Wall, .RenderTexture }
+    wall.flags = { .Wall, .RenderSprite }
 
-    wall.sprite = dm.CreateSprite(globals.renderCtx.whiteTexture, {0, 0, 1, 1})
-    wall.tint = {0.2, 0.2, 0.2, 1}
+    wall.sprite = sprite
+    wall.tint = {0.4, 0.2, 0.7, 1}
+
+    switch layer {
+        case "L1": wall.levelLayer = .L1
+        case "L2": wall.levelLayer = .L2
+    }
 }
