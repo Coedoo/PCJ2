@@ -16,6 +16,12 @@ PlayerMovementState :: enum {
     Dash, // ??
 }
 
+PlayerAbility :: enum {
+    DoubleJump,
+    WallClimb,
+    WorldSwitch,
+}
+
 PlayerState :: struct {
     wallClingTimer: f32,
 

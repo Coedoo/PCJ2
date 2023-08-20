@@ -105,12 +105,13 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                         }
                         else {
                             e, handle := CreateEntity()
+                            e.collisionSize = {1, 1}
 
                             e.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.grid_size)}
                             tileRect, ok := entity.tile.?
                             if ok {
                                 e.sprite = dm.CreateSprite(gameState.atlasTex, 
-                                    {i32(tileRect.x), i32(tileRect.y), i32(tileRect.w), i32(tileRect.h)})                            
+                                    {i32(tileRect.x), i32(tileRect.y), i32(tileRect.w), i32(tileRect.h)})
                             }
 
                             for tag in entity.tags {
@@ -120,17 +121,34 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
                                 case "Checkpoint": e.triggerType = .Checkpoint
                                 case "Damageable": e.triggerType = .Damageable
+                                case "Ability": {
+                                    e.triggerType = .Ability
+
+                                    if len(entity.field_instances) > 0 {
+                                        field := entity.field_instances[0]
+                                        if field.identifier == "AbilityType" {
+                                            if v, ok := field.value.(string); ok {
+                                                switch v {
+                                                case "DoubleJump": e.pickupAbility = .DoubleJump
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 }
                             }
-
-                            e.collisionSize = {1, 1}
-
-                            // fmt.println(entity)
                         }
                     }
                 }
             }
         }
+    }
+
+
+    when ODIN_DEBUG {
+        // gameState.playerState.doubleJump = true
+        // gameState.playerState.wallClimb = true
+        // gameState.playerState.worldSwitch = true
     }
 }
 
@@ -161,6 +179,14 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                     }
                     case .Damageable: {
                         player.position = gameState.lastCheckpointPosition
+                    }
+
+                    case .Ability: {
+                        switch e.pickupAbility {
+                            case .DoubleJump:  gameState.playerState.doubleJump = true
+                            case .WallClimb:   gameState.playerState.wallClimb = true
+                            case .WorldSwitch: gameState.playerState.worldSwitch = true
+                        }
                     }
                     }
                 }
@@ -221,7 +247,7 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
     // Debug Window
-    if dm.muiBeginWindow(mui, "T", {0, 0, 100, 120}, nil) {
+    if dm.muiBeginWindow(mui, "T", {0, 0, 150, 200}, nil) {
         defer dm.muiEndWindow(mui)
         
         dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)

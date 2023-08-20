@@ -1,7 +1,5 @@
 # GAMEPLAY
 
-- Ability system (just flags that are set if we unlocked ability)
-
 = Abilities
  - Dash
 
@@ -25,6 +23,5 @@
 # SYSTEMS
 
 - Move walls to different struct
-- Move player specific stuff to different functions
 - Better player death handling with camera
 - Frustrum culling

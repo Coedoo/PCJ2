@@ -25,6 +25,7 @@ TriggerType :: enum {
     None,
     Checkpoint,
     Damageable,
+    Ability,
 }
 
 LevelLayer :: enum {
@@ -50,6 +51,8 @@ Entity :: struct {
     facingDir: f32,
 
     triggerType: TriggerType,
+    pickupAbility: PlayerAbility,
+
 
     // physics
     collisionSize: v2,
