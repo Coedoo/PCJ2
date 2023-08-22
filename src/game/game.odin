@@ -28,6 +28,8 @@ GameState :: struct {
     playerHandle: EntityHandle,
     camera: dm.Camera,
 
+    font: dm.Font,
+
     pixelmaTex: dm.TexHandle,
     atlasTex: dm.TexHandle,
 
@@ -38,6 +40,9 @@ GameState :: struct {
     lastCheckpointHandle: EntityHandle,
 
     playerState: PlayerState,
+
+    showMessage: bool,
+    message: string,
 }
 
 gameState: ^GameState
@@ -70,6 +75,8 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     /////
     gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
 
+    gameState.font = dm.LoadDefaultFont(platform.renderCtx)
+
     // player.position = {3, 10}
 
     if project, ok := ldtk.load_from_memory(levelFile, context.temp_allocator).?; ok {
@@ -99,7 +106,9 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                         if entity.identifier == "Player" {
                             gameState.playerHandle = CreatePlayerEntity()
                             player := dm.GetElement(gameState.entities, gameState.playerHandle)
-                            player.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.grid_size)}
+                            player.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.c_height)}
+
+                            gameState.camera.position.xy = {player.position.x, player.position.y}
 
                             gameState.lastCheckpointPosition = player.position
                         }
@@ -107,12 +116,14 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                             e, handle := CreateEntity()
                             e.collisionSize = {1, 1}
 
-                            e.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.grid_size)}
+                            e.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.c_height)}
                             tileRect, ok := entity.tile.?
                             if ok {
                                 e.sprite = dm.CreateSprite(gameState.atlasTex, 
                                     {i32(tileRect.x), i32(tileRect.y), i32(tileRect.w), i32(tileRect.h)})
                             }
+
+                            // fmt.println(layer.grid_size, entity.grid.y, e.position)
 
                             for tag in entity.tags {
                                 switch tag {
@@ -129,7 +140,9 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                                         if field.identifier == "AbilityType" {
                                             if v, ok := field.value.(string); ok {
                                                 switch v {
-                                                case "DoubleJump": e.pickupAbility = .DoubleJump
+                                                case "DoubleJump": e.pickupAbility  = .DoubleJump
+                                                case "WallClimb": e.pickupAbility   = .WallClimb
+                                                case "WorldSwitch": e.pickupAbility = .WorldSwitch
                                                 }
                                             }
                                         }
@@ -150,11 +163,29 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
         // gameState.playerState.wallClimb = true
         // gameState.playerState.worldSwitch = true
     }
+
+
+    ShowMessage("Kappa")
+}
+
+ShowMessage :: proc(message: string) {
+    gameState.message = message
+    gameState.showMessage = true
 }
 
 @(export)
 GameUpdate : dm.GameUpdate : proc(state: rawptr) {
     using globals
+
+    if gameState.showMessage {
+        if dm.GetKeyState(input, .Space) == .JustPressed {
+            gameState.showMessage = false
+        }
+
+        if gameState.showMessage {
+            return
+        }
+    }
 
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
@@ -251,6 +282,7 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
         defer dm.muiEndWindow(mui)
         
         dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)
+        dm.muiLabel(mui, "Jumps:", gameState.playerState.jumpsLeftCount)
 
         dm.muiToggle(mui, "doubleJump",  &gameState.playerState.doubleJump)
         dm.muiToggle(mui, "wallClimb",   &gameState.playerState.wallClimb)
@@ -280,7 +312,6 @@ GameRender : dm.GameRender : proc(state: rawptr) {
     dm.ClearColor(renderCtx, {0.8, 0.8, 0.8, 1})
     dm.SetCamera(renderCtx, gameState.camera)
 
-
     for e in gameState.entities.elements {
         if dm.IsHandleValid(gameState.entities, e.handle) == false {
             continue
@@ -295,5 +326,12 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
             dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
         }
+    }
+
+    if gameState.showMessage {
+        windowSize := globals.renderCtx.frameSize
+
+        dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(windowSize / 2), {500, 400}, color = {0, 0, 0, .86})
+        dm.DrawTextCentered(renderCtx, gameState.message, gameState.font, windowSize / 2, 64)
     }
 }

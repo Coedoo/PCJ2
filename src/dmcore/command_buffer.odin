@@ -111,12 +111,12 @@ DrawRectSimple :: proc(ctx: ^RenderContext, texture: TexHandle, position: v2, co
     append(&ctx.commandBuffer.commands, cmd)
 }
 
-DrawRectSize :: proc(ctx: ^RenderContext, texture: TexHandle, position: v2, size: v2, color: color = WHITE) {
+DrawRectSize :: proc(ctx: ^RenderContext, texture: TexHandle, position: v2, size: v2, origin := v2{0.5, 0.5}, color: color = WHITE) {
     cmd: DrawRectCommand
 
     texSize :=  GetTextureSize(ctx, texture)
 
-    cmd.position = position
+    cmd.position = position - origin * size
     cmd.size = size
     cmd.source = {0, 0, texSize.x, texSize.y}
     cmd.tint = color

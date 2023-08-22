@@ -53,7 +53,6 @@ Entity :: struct {
     triggerType: TriggerType,
     pickupAbility: PlayerAbility,
 
-
     // physics
     collisionSize: v2,
     velocity: v2,
