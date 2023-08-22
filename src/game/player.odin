@@ -38,11 +38,7 @@ PlayerState :: struct {
     dashing: bool,
     dashPoint: v2,
 
-    // Abilities
-    doubleJump:  bool,
-    wallClimb:   bool,
-    worldSwitch: bool,
-    canDash:     bool,
+    abilities: bit_set[PlayerAbility]
 }
 
 CreatePlayerEntity :: proc() -> EntityHandle {
@@ -74,7 +70,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     jumpSpeed := -gravity * jumpTime;
 
     // World Switch
-    if worldSwitch && dm.GetKeyState(globals.input, .Up) == .JustPressed {
+    if .WorldSwitch in abilities && dm.GetKeyState(globals.input, .Up) == .JustPressed {
         gameState.activeLayer = .L1 if gameState.activeLayer == .L2 else .L2
     }
 
@@ -82,7 +78,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     input := dm.GetAxisInt(globals.input, .Left, .Right)
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
 
-    if canDash && dm.GetKeyState(globals.input, .LShift) == .JustPressed {
+    if .Dash in abilities && dm.GetKeyState(globals.input, .LShift) == .JustPressed {
         dashing = true
         dashPoint = position + {facingDir * dashDistance, 0}
         velocity = 0
@@ -100,7 +96,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
         // velocity.x = targetVelX
         velocity.y += gravity * globals.time.deltaTime
 
-        wallSlide = (collLeft || collRight) && collBot == false && playerState.wallClimb
+        wallSlide = (collLeft || collRight) && collBot == false && .WallClimb in abilities
         if wallSlide {
             velocity.y = -min(-velocity.y, wallSlideSpeed)
         }
@@ -248,7 +244,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     }
 
     if movementState != .Jump {
-        jumpsLeftCount = doubleJump ? 2 : 1
+        jumpsLeftCount = .DoubleJump in abilities ? 2 : 1
     }
 }
 

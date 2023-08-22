@@ -8,7 +8,8 @@ robocopy ..\lib . /s > nul
 
 set exeName=DanMofu
 
-set flags=-out:%exeName%.exe -max-error-count:5
+rem set flags=-out:%exeName%.exe -max-error-count:5
+set flags=-out:%exeName%.exe
 
 if "%1" == "release" (
     echo "RELEASE"
