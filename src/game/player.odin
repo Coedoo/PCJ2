@@ -95,11 +95,14 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
             velocity.y = wallClimbSpeed.y
             velocity.x = -f32(wallDir) * 20
 
-            jumpsLeftCount -= 1
+            // jumpsLeftCount -= 1
         }
         else if collBot || jumpsLeftCount > 0 {
             velocity.y = jumpSpeed
-            jumpsLeftCount -= 1
+
+            if collBot == false {
+                jumpsLeftCount -= 1
+            }
         }
     }
 
@@ -185,11 +188,17 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
         velocity.y = 0
     }
 
+    prevState := movementState
+
     if wallSlide {
         movementState = .WallSlide
     }
     else if collBot == false {
         movementState = .Jump
+
+        if prevState != .Jump {
+            jumpsLeftCount -= 1
+        }
     }
     else if velocity.x * velocity.x + velocity.y * velocity.y > math.F32_EPSILON {
         movementState = .Run
