@@ -13,13 +13,14 @@ PlayerMovementState :: enum {
     Run,
     Jump,
     WallSlide,
-    Dash, // ??
+    Dash,
 }
 
 PlayerAbility :: enum {
     DoubleJump,
     WallClimb,
     WorldSwitch,
+    Dash,
 }
 
 PlayerState :: struct {
@@ -34,10 +35,14 @@ PlayerState :: struct {
 
     jumpsLeftCount: int,
 
+    dashing: bool,
+    dashPoint: v2,
+
     // Abilities
     doubleJump:  bool,
     wallClimb:   bool,
     worldSwitch: bool,
+    canDash:     bool,
 }
 
 CreatePlayerEntity :: proc() -> EntityHandle {
@@ -77,37 +82,51 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     input := dm.GetAxisInt(globals.input, .Left, .Right)
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
 
-    targetVelX := f32(input) * playerSpeed 
+    if canDash && dm.GetKeyState(globals.input, .LShift) == .JustPressed {
+        dashing = true
+        dashPoint = position + {facingDir * dashDistance, 0}
+        velocity = 0
+    }
+
+    targetVelX := dashing ? \
+                facingDir * dashSpeed : \
+                f32(input) * playerSpeed 
 
     velocity.x = math.lerp(velocity.x, targetVelX, 20 * globals.time.deltaTime)
-    // velocity.x = targetVelX
-    velocity.y += gravity * globals.time.deltaTime
 
-    wallSlide := (collLeft || collRight) && collBot == false && playerState.wallClimb
-    if wallSlide {
-        velocity.y = -min(-velocity.y, wallSlideSpeed)
-    }
+    wallSlide := false
 
-    if doJump {
+    if dashing == false {
+        // velocity.x = targetVelX
+        velocity.y += gravity * globals.time.deltaTime
+
+        wallSlide = (collLeft || collRight) && collBot == false && playerState.wallClimb
         if wallSlide {
-            wallDir := collLeft ? -1 : 1
-
-            velocity.y = wallClimbSpeed.y
-            velocity.x = -f32(wallDir) * 20
-
-            // jumpsLeftCount -= 1
+            velocity.y = -min(-velocity.y, wallSlideSpeed)
         }
-        else if collBot || jumpsLeftCount > 0 {
-            velocity.y = jumpSpeed
 
-            if collBot == false {
-                jumpsLeftCount -= 1
+        if doJump {
+            if wallSlide {
+                wallDir := collLeft ? -1 : 1
+
+                velocity.y = wallClimbSpeed.y
+                velocity.x = -f32(wallDir) * 20
+
+                // jumpsLeftCount -= 1
+            }
+            else if collBot || jumpsLeftCount > 0 {
+                velocity.y = jumpSpeed
+
+                // 
+                if collBot == false {
+                    jumpsLeftCount -= 1
+                }
             }
         }
-    }
 
-    if velocity.x != 0 {
-        facingDir = math.sign(velocity.x)
+        if velocity.x != 0 {
+            facingDir = math.sign(velocity.x)
+        }
     }
 
     collTop   = false
@@ -183,6 +202,27 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     /////
 
     position += move
+
+
+    if dashing {
+        if facingDir == 1 {
+            if position.x >= dashPoint.x {
+                dashing = false
+                position = dashPoint
+            }
+        }
+        else {
+            if position.x <= dashPoint.x {
+                dashing = false
+                position = dashPoint
+            }
+        }
+    }
+
+    if collLeft || collRight {
+        dashing = false
+    }
+
 
     if collTop || collBot {
         velocity.y = 0

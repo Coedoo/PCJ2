@@ -951,7 +951,8 @@
 	], "enums": [{ "identifier": "AbilityType", "uid": 41, "values": [
 		{ "id": "DoubleJump", "tileRect": null, "tileId": -1, "color": 12470831, "__tileSrcRect": null },
 		{ "id": "WorldSwitch", "tileRect": null, "tileId": -1, "color": 14120515, "__tileSrcRect": null },
-		{ "id": "WallClimb", "tileRect": null, "tileId": -1, "color": 15389866, "__tileSrcRect": null }
+		{ "id": "WallClimb", "tileRect": null, "tileId": -1, "color": 15389866, "__tileSrcRect": null },
+		{ "id": "Dash", "tileRect": null, "tileId": -1, "color": 14984818, "__tileSrcRect": null }
 	], "iconTilesetUid": null, "externalRelPath": null, "externalFileChecksum": null, "tags": [] }], "externalEnums": [], "levelFields": [] },
 	"levels": [
 		{

@@ -5,6 +5,8 @@ jumpHeight :f32: 3.1
 jumpTime :f32: 0.3
 
 playerSpeed :: 9
+dashDistance :: 4
+dashSpeed :: 50
 
 wallSlideSpeed :: 1
 

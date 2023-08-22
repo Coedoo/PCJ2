@@ -140,9 +140,10 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                                         if field.identifier == "AbilityType" {
                                             if v, ok := field.value.(string); ok {
                                                 switch v {
-                                                case "DoubleJump": e.pickupAbility  = .DoubleJump
-                                                case "WallClimb": e.pickupAbility   = .WallClimb
+                                                case "DoubleJump":  e.pickupAbility  = .DoubleJump
+                                                case "WallClimb":   e.pickupAbility   = .WallClimb
                                                 case "WorldSwitch": e.pickupAbility = .WorldSwitch
+                                                case "Dash":        e.pickupAbility = .Dash
                                                 }
                                             }
                                         }
@@ -217,6 +218,7 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                             case .DoubleJump:  gameState.playerState.doubleJump = true
                             case .WallClimb:   gameState.playerState.wallClimb = true
                             case .WorldSwitch: gameState.playerState.worldSwitch = true
+                            case .Dash:        gameState.playerState.canDash = true
                         }
                     }
                     }
@@ -287,6 +289,7 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
         dm.muiToggle(mui, "doubleJump",  &gameState.playerState.doubleJump)
         dm.muiToggle(mui, "wallClimb",   &gameState.playerState.wallClimb)
         dm.muiToggle(mui, "worldSwitch", &gameState.playerState.worldSwitch)
+        dm.muiToggle(mui, "canDash",     &gameState.playerState.canDash)
     }
 
     for &e in gameState.entities.elements {
