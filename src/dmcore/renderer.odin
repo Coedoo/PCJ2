@@ -132,6 +132,8 @@ Sprite :: struct {
 
     tint: color,
 
+    flipX, flipY: bool,
+
     scale: f32,
 
     frames: i32,

@@ -5,6 +5,8 @@ package platform_wasm
 import "vendor:wasm/js"
 import dm "../dmcore"
 
+import "core:fmt"
+
 JsToDMMouseButton := []dm.MouseButton {
     .Left,
     .Middle,

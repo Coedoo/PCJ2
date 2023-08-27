@@ -108,11 +108,14 @@ step :: proc "contextless" (delta: f32, ctx: ^runtime.Context) {
                 platform.input.mouseDelta.y = i32(e.mouse.movement.y)
 
             case .Key_Up:
-                key := JsKeyToKey[e.key.code]
+                // fmt.println()
+                c := string(e.key._code_buf[:e.key._code_len])
+                key := JsKeyToKey[c]
                 input.curr[key] = .Up
 
             case .Key_Down:
-                key := JsKeyToKey[e.key.code]
+                c := string(e.key._code_buf[:e.key._code_len])
+                key := JsKeyToKey[c]
                 input.curr[key] = .Down
         }
     }

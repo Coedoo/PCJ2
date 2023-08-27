@@ -17,7 +17,8 @@ import "../ldtk"
 v2  :: dm.v2
 iv2 :: dm.iv2
 
-pixelmaFile := #load("../../assets/pixelma.png")
+// pixelmaFile := #load("../../assets/pixelma.png")
+characterAnimFile := #load("../../assets/player_anim.png")
 atlasFile := #load("../../assets/atlas.png")
 
 levelFile := #load("../../assets/level.json", []byte)
@@ -37,7 +38,7 @@ GameState :: struct {
 
     font: dm.Font,
 
-    pixelmaTex: dm.TexHandle,
+    characterTex: dm.TexHandle,
     atlasTex: dm.TexHandle,
 
     activeLayer: LevelLayer,
@@ -74,7 +75,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     gameState = dm.AlocateGameData(platform, GameState)
     dm.InitResourcePool(&gameState.entities, 1024)
 
-    gameState.pixelmaTex = dm.LoadTextureFromMemory(pixelmaFile, globals.renderCtx)
+    gameState.characterTex = dm.LoadTextureFromMemory(characterAnimFile, globals.renderCtx)
     gameState.atlasTex = dm.LoadTextureFromMemory(atlasFile, globals.renderCtx)
     
     gameState.activeLayer = .L1
@@ -134,7 +135,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
                             for tag in entity.tags {
                                 switch tag {
-                                case "RenderSprite": e.flags += { .RenderSprite }
+                                // case "RenderSprite": e.flags += { .RenderSprite }
                                 case "Trigger":      e.flags += { .Trigger }
 
                                 case "Checkpoint": e.triggerType = .Checkpoint
@@ -167,13 +168,30 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
 
     when ODIN_DEBUG {
-        // gameState.playerState.doubleJump = true
-        // gameState.playerState.wallClimb = true
-        // gameState.playerState.worldSwitch = true
+        // gameState.playerState.abilities = {.DoubleJump, .Dash, .WorldSwitch, .WallClimb}
+        gameState.playerState.abilities = {.WorldSwitch, .WallClimb }
     }
 
+    gameState.playerState.runAnim = dm.CreateSprite(gameState.characterTex, {0, 0, 64, 64})
+    gameState.playerState.runAnim.frames = 8
+    gameState.playerState.runAnim.origin = {0.5, 1}
+    gameState.playerState.runAnim.animDirection = dm.Axis.Horizontal
 
-    ShowMessage("Kappa")
+    gameState.playerState.jumpAnim = dm.CreateSprite(gameState.characterTex, {0, 3 * 64, 64, 64})
+    gameState.playerState.jumpAnim.frames = 3
+    gameState.playerState.jumpAnim.origin = {0.5, 1}
+    gameState.playerState.jumpAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.dashAnim = dm.CreateSprite(gameState.characterTex, {0, 2 * 64, 64, 64})
+    gameState.playerState.dashAnim.frames = 3
+    gameState.playerState.dashAnim.origin = {0.5, 1}
+    gameState.playerState.dashAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.dashAnim.scale = 2
+    gameState.playerState.jumpAnim.scale = 2
+    gameState.playerState.runAnim.scale = 2
+
+    // ShowMessage("Kappa")
 }
 
 ShowMessage :: proc(message: string) {
@@ -204,6 +222,13 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
             if dm.IsHandleValid(gameState.entities, e.handle) == false {
                 continue
             }
+            
+            if .Lifetime in e.flags {
+                e.lifetimeLeft -= time.deltaTime
+                if e.lifetimeLeft < 0 {
+                    DestroyEntity(e.handle)
+                }
+            }
 
             if .Trigger in e.flags {
                 aBounds := dm.CreateBounds(e.position, e.collisionSize, e.pivot)
@@ -221,8 +246,10 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                     }
 
                     case .Ability: {
-                        gameState.playerState.abilities += { e.pickupAbility }
-                        ShowMessage(AbilityMessages[e.pickupAbility])
+                        if e.pickupAbility not_in gameState.playerState.abilities {
+                            gameState.playerState.abilities += { e.pickupAbility }
+                            ShowMessage(AbilityMessages[e.pickupAbility])
+                        }
                     }
                     }
                 }
@@ -249,8 +276,7 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         boxWidth  := right - left
         boxHeight := top - bot
 
-        dm.DrawBounds2D(renderCtx, focusBox, dm.RED)
-
+        // dm.DrawBounds2D(renderCtx, focusBox, dm.RED)
 
         if player.position.x > right {
             camPos.x = player.position.x - boxWidth / 2 
@@ -283,11 +309,13 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
     // Debug Window
-    if dm.muiBeginWindow(mui, "T", {0, 0, 150, 200}, nil) {
+    if dm.muiBeginWindow(mui, "T", {0, 0, 150, 300}, nil) {
         defer dm.muiEndWindow(mui)
         
         dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)
         dm.muiLabel(mui, "Jumps:", gameState.playerState.jumpsLeftCount)
+        dm.muiLabel(mui, "Vel:", player.velocity)
+        dm.muiLabel(mui, "Cling:", gameState.playerState.wallClingTimer)
 
         // dm.muiToggle(mui, "doubleJump",  &gameState.playerState.doubleJump)
         // dm.muiToggle(mui, "wallClimb",   &gameState.playerState.wallClimb)
@@ -312,10 +340,10 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
             continue
         }
 
-        dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.BLACK)
+        // dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.BLACK)
 
         if .Trigger in e.flags {
-            dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.RED)
+            // dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.RED)
         }
     }
 }
@@ -327,23 +355,36 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
     gameState := cast(^GameState) state
 
-    dm.ClearColor(renderCtx, {0.8, 0.8, 0.8, 1})
+    dm.InputDebugWindow(input, mui)
+
+    dm.ClearColor(renderCtx, {0.5, 0.5, 0.6, 1})
     dm.SetCamera(renderCtx, gameState.camera)
+
+    camPos := gameState.camera.position
+    camHeight := gameState.camera.orthoSize
+    camWidth  := gameState.camera.aspect * camHeight
+    cameraBounds := dm.Bounds2D{
+        camPos.x - camWidth, camPos.x + camWidth,
+        camPos.y - camHeight, camPos.y + camHeight,
+    }
+
 
     for e in gameState.entities.elements {
         if dm.IsHandleValid(gameState.entities, e.handle) == false {
             continue
         }
 
-        if .RenderSprite in e.flags
-        {
-            tint := e.tint
-            if e.levelLayer != gameState.activeLayer && e.levelLayer != .Base {
-                tint = dm.RED
-            }
-
-            dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
+        bounds := dm.CreateBounds(e.position, e.size)
+        if dm.CheckCollisionBounds(cameraBounds, bounds) == false {
+            continue
         }
+
+        tint := e.tint
+        if e.levelLayer != gameState.activeLayer && e.levelLayer != .Base {
+            tint = dm.RED
+        }
+
+        dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
     }
 
     if gameState.showMessage {

@@ -12,8 +12,8 @@ EntityHandle :: distinct dm.Handle
 
 EntityFlag :: enum {
     Wall,
-    RenderSprite,
     Trigger,
+    Lifetime,
 }
 
 ControlerType :: enum {
@@ -56,6 +56,8 @@ Entity :: struct {
     // physics
     collisionSize: v2,
     velocity: v2,
+
+    lifetimeLeft: f32,
 }
 
 
@@ -76,7 +78,7 @@ CreateEntity :: proc() -> (^Entity, EntityHandle) {
 }
 
 DestroyEntity :: proc(handle: EntityHandle) {
-    dm.FreeSlot(gameState.entities, auto_cast handle)
+    dm.FreeSlot(gameState.entities, handle)
 }
 
 
@@ -104,7 +106,7 @@ CreateWall :: proc(pos: v2, sprite: dm.Sprite, layer: string) {
     wall.position      = pos
     wall.collisionSize = {1, 1}
 
-    wall.flags = { .Wall, .RenderSprite }
+    wall.flags = { .Wall }
 
     wall.sprite = sprite
     wall.tint = {0.4, 0.2, 0.7, 1}
