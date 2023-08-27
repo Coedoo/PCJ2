@@ -49,7 +49,7 @@ RenderContext :: struct {
 
     defaultShaders: [DefaultShaderType]ShaderHandle,
 
-    CreateTexture: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^RenderContext) -> TexHandle,
+    CreateTexture: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^RenderContext, filter: TextureFilter) -> TexHandle,
     GetTextureInfo: proc(handle: TexHandle) -> (TextureInfo, bool),
 
     CreateRectBatch: proc(renderCtx: ^RenderContext, bathc: ^RectBatch, count: int),
@@ -82,6 +82,12 @@ TextureInfo :: struct {
     height: i32,
 }
 
+TextureFilter :: enum {
+    Point,
+    Bilinear,
+    Mip,
+}
+
 // DestroyTexHandle :: proc(handle: TexHandle) {
 //     //@TODO: renderer destroy
 //     textures[handle.index].handle.index = 0
@@ -92,7 +98,7 @@ GetTextureSize :: proc(renderCtx: ^RenderContext, handle: TexHandle) -> iv2 {
     return {info.width, info.height}
 }
 
-LoadTextureFromFile :: proc(filePath: string, renderCtx: ^RenderContext) -> TexHandle {
+LoadTextureFromFile :: proc(filePath: string, renderCtx: ^RenderContext, filter := TextureFilter.Point) -> TexHandle {
     data, ok := os.read_entire_file(filePath, context.temp_allocator)
 
     if ok == false {
@@ -104,12 +110,12 @@ LoadTextureFromFile :: proc(filePath: string, renderCtx: ^RenderContext) -> TexH
     return LoadTextureFromMemory(data, renderCtx)
 }
 
-LoadTextureFromMemory :: proc(data: []u8, renderCtx: ^RenderContext) -> TexHandle {
+LoadTextureFromMemory :: proc(data: []u8, renderCtx: ^RenderContext, filter := TextureFilter.Point) -> TexHandle {
     // @TODO: change CreateTexture so it uses std image.Image instead of passing
     // params directly
     image, ok := png.load_from_bytes(data, allocator = context.temp_allocator)
 
-    return renderCtx.CreateTexture(image.pixels.buf[:], cast(i32) image.width, cast(i32) image.height, cast(i32) image.channels, renderCtx)
+    return renderCtx.CreateTexture(image.pixels.buf[:], cast(i32) image.width, cast(i32) image.height, cast(i32) image.channels, renderCtx, filter)
 }
 
 

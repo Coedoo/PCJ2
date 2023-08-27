@@ -19,9 +19,9 @@ iv2 :: dm.iv2
 
 // pixelmaFile := #load("../../assets/pixelma.png")
 characterAnimFile := #load("../../assets/player_anim.png")
-atlasFile := #load("../../assets/atlas.png")
+atlasFile := #load("../../assets/tiles.png")
 
-levelFile := #load("../../assets/level.json", []byte)
+levelFile := #load("../../assets/level2.json", []byte)
 
 AbilityMessages: [PlayerAbility]string = {
     .DoubleJump = "AAAAAAAA",
@@ -120,7 +120,7 @@ WinSequence :: proc() {
 
 Raycast :: proc(ray: dm.Ray2D, maxDist: f32, layer: LevelLayer) -> (bool, f32) {
     for e in gameState.entities.elements {
-        if .Wall in e.flags && e.levelLayer == .Base || e.levelLayer == layer {
+        if .Wall in e.flags && (e.levelLayer == .Base || e.levelLayer == layer) {
             bounds := dm.CreateBounds(e.position, e.collisionSize)
             hit, dist := dm.RaycastAABB2D(ray, bounds, maxDist)
 
@@ -138,13 +138,14 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     gameState = dm.AlocateGameData(platform, GameState)
     dm.InitResourcePool(&gameState.entities, 1024)
 
-    gameState.characterTex = dm.LoadTextureFromMemory(characterAnimFile, globals.renderCtx)
-    gameState.atlasTex = dm.LoadTextureFromMemory(atlasFile, globals.renderCtx)
+    gameState.characterTex = dm.LoadTextureFromMemory(characterAnimFile, globals.renderCtx, .Bilinear)
+    gameState.atlasTex = dm.LoadTextureFromMemory(atlasFile, globals.renderCtx, .Bilinear)
     
     gameState.activeLayer = .L1
 
     /////
     gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
+    gameState.camera.position.z = 1
 
     gameState.font = dm.LoadDefaultFont(platform.renderCtx)
 
@@ -164,7 +165,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
                         CreateWall(
                             {posX, posY}, 
-                            dm.CreateSprite(gameState.atlasTex, {i32(tile.src.x), i32(tile.src.y), 16, 16}),
+                            dm.CreateSprite(gameState.atlasTex, {i32(tile.src.x), i32(tile.src.y), 32, 32}),
                             layer.identifier
                         )
                     }
@@ -185,7 +186,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                         }
                         else {
                             e, handle := CreateEntity()
-                            e.collisionSize = {1, 1}
+                            e.collisionSize = {0.98, 0.98}
 
                             e.position = v2{f32(entity.grid.x), f32(-entity.grid.y + layer.c_height)}
                             tileRect, ok := entity.tile.?
@@ -389,7 +390,13 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
         dm.muiLabel(mui, "MovState:", gameState.playerState.movementState)
         dm.muiLabel(mui, "Jumps:", gameState.playerState.jumpsLeftCount)
         dm.muiLabel(mui, "Vel:", player.velocity)
+        dm.muiLabel(mui, "Pos:", player.position)
         dm.muiLabel(mui, "Cling:", gameState.playerState.wallClingTimer)
+
+        // fmt.println(player.position)
+
+        dm.muiLabel(mui, "collLeft:", gameState.playerState.collRight)
+        dm.muiLabel(mui, "FacingDir:", player.facingDir)
 
         // dm.muiToggle(mui, "doubleJump",  &gameState.playerState.doubleJump)
         // dm.muiToggle(mui, "wallClimb",   &gameState.playerState.wallClimb)
@@ -408,18 +415,6 @@ GameUpdateDebug : dm.GameUpdateDebug : proc(state: rawptr, debug: bool) {
             }
         }
     }
-
-    for &e in gameState.entities.elements {
-        if dm.IsHandleValid(gameState.entities, e.handle) == false {
-            continue
-        }
-
-        // dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.BLACK)
-
-        if .Trigger in e.flags {
-            // dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.RED)
-        }
-    }
 }
 
 
@@ -428,9 +423,6 @@ GameRender : dm.GameRender : proc(state: rawptr) {
     using globals
 
     gameState := cast(^GameState) state
-
-
-    dm.InputDebugWindow(input, mui)
 
     dm.ClearColor(renderCtx, {0.5, 0.5, 0.6, 1})
     dm.SetCamera(renderCtx, gameState.camera)
@@ -456,10 +448,18 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
         tint := e.tint
         if e.levelLayer != gameState.activeLayer && e.levelLayer != .Base {
-            tint = dm.RED
+            tint.a = 0.5
         }
 
         dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
+
+        when ODIN_DEBUG {
+            // dm.DrawBox2D(renderCtx, e.position, {0.1, 0.1}, dm.BLACK)
+
+            if .Trigger in e.flags {
+                dm.DrawBox2D(renderCtx, e.position, e.collisionSize, dm.RED)
+            }
+        }
     }
 
     if gameState.showMessage {

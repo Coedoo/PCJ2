@@ -119,7 +119,8 @@ sprite_HLSL :: `
         float2 tp = mul(rot, float2(pos[i.x], pos[i.y])) + sp.pos;
 
         p.pos = mul(VPMat, float4(tp, 0, 1));
-        p.uv  = float2(tex[i.x], tex[i.y]) * oneOverAtlasSize;
+        // p.uv  = float2(tex[i.x], tex[i.y]) * oneOverAtlasSize;
+        p.uv  = float2(tex[i.x], tex[i.y]);
 
         p.color = sp.color;
 
@@ -128,12 +129,16 @@ sprite_HLSL :: `
 
     float4 ps_main(pixel p) : SV_TARGET
     {
-        float4 color = tex.Sample(texSampler, p.uv);
+        float2 uv = floor(p.uv) + smoothstep(0, 1, frac(p.uv) / fwidth(p.uv)) - 0.5;
+        float4 texColor = tex.Sample(texSampler, uv * oneOverAtlasSize);
 
-        if (color.a == 0) discard;
+        if (texColor.a == 0) discard;
 
-        float4 c = float4(color.rgb * p.color.rgb, 1);
-        return c;
+        // float4 c = float4(color.rgb * p.color.rgb, 1);
+        // return c;
+
+        // float3 c = p.color.rgb * p.color.a;
+        return p.color * texColor;
     }
 `
 

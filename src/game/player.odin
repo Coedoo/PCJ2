@@ -108,9 +108,9 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
             velocity.y = -min(-velocity.y, wallSlideSpeed)
 
             if wallClingTimer > 0 {
-                velocity.x = 0
 
                 if input != i32(facingDir) && input != 0 {
+                    velocity.x = 0
                     wallClingTimer -= globals.time.deltaTime
                 }
                 else {
@@ -160,12 +160,12 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     dir := math.sign(velocity.y)
 
     rayOrigin: v2
-    rayOrigin.x = bounds.left
+    rayOrigin.x = bounds.left + skinWidth
     rayOrigin.y = dir == 1 ? bounds.top - skinWidth : bounds.bot + skinWidth  
 
     ray := dm.CreateRay2D(rayOrigin, {0, dir})
 
-    step := (bounds.right - bounds.left - skinWidth) / (raysPerCharacter - 1)
+    step := (bounds.right - bounds.left - skinWidth * 2) / (raysPerCharacter - 1)
     rayLength := abs(velocity.y) * globals.time.deltaTime + skinWidth
 
     collisionSize = {1, 2} if dashing == false else {1, 1}
@@ -173,8 +173,12 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     for i in 0..<raysPerCharacter {
         hit, dist := Raycast(ray, rayLength, gameState.activeLayer)
 
+
         when ODIN_DEBUG {
-            dm.DrawRay(globals.renderCtx, ray, rayLength * 10, hit ? dm.RED : dm.GREEN)
+            dm.DrawRay(globals.renderCtx, ray, dist * 10, hit ? dm.RED : dm.GREEN)
+
+            // h, d := Raycast(ray, 10, gameState.activeLayer)
+            // dm.DrawRay(globals.renderCtx, ray, d, h ? dm.RED : dm.GREEN)
         }
 
         if hit {
@@ -191,22 +195,26 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     /// Horizontal Collisions
     dir = facingDir
 
-    rayOrigin.x = dir == 1 ? bounds.right : bounds.left
-    rayOrigin.y = bounds.bot
+    rayOrigin.x = dir == 1 ? bounds.right - skinWidth : bounds.left + skinWidth
+    rayOrigin.y = bounds.bot + skinWidth
 
     ray = dm.CreateRay2D(rayOrigin, {dir, 0})
 
-    step = (bounds.top - bounds.bot - skinWidth) / (raysPerCharacter - 1)
+    step = (bounds.top - bounds.bot - skinWidth * 2) / (raysPerCharacter - 1)
     rayLength = abs(velocity.x) * globals.time.deltaTime + skinWidth
 
-    if rayLength < skinWidth {
+    if rayLength <= skinWidth {
         rayLength = skinWidth * 2
     }
 
     for i in 0..<raysPerCharacter {
         hit, dist := Raycast(ray, rayLength, gameState.activeLayer)
 
-        dm.DrawRay(globals.renderCtx, ray, rayLength * 10, hit ? dm.RED : dm.GREEN)
+        when ODIN_DEBUG {
+            dm.DrawRay(globals.renderCtx, ray, hit ? dist * 10 : rayLength * 10, hit ? dm.RED : dm.GREEN)
+            // h, d := Raycast(ray, 10, gameState.activeLayer)
+            // dm.DrawRay(globals.renderCtx, ray, d, h ? dm.RED : dm.GREEN)
+        }
 
         if hit {
             rayLength = dist
@@ -218,7 +226,6 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
 
         ray.origin.y += step
     }
-
 
     /////
 

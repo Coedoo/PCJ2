@@ -44,7 +44,24 @@ DrawSprite :: proc(ctx: ^RenderContext, sprite: Sprite, position: v2,
     cmd: DrawRectCommand
 
     texPos := sprite.atlasPos
-    texPos += sprite.pixelSize * sprite.currentFrame * ({1, 0} if sprite.animDirection == .Horizontal else {0, 1})
+
+    texInfo, ok := ctx.GetTextureInfo(sprite.texture)
+
+    if sprite.animDirection == .Horizontal {
+        texPos.x += sprite.pixelSize.x * sprite.currentFrame
+        if texPos.x >= texInfo.width {
+            texPos.x = texPos.x % texInfo.width
+        }
+    }
+    else {
+        texPos.y += sprite.pixelSize.y * sprite.currentFrame
+        if texPos.y >= texInfo.height {
+            texPos.y = texPos.y % texInfo.height
+        }
+    }
+
+    // texPos += sprite.pixelSize * sprite.currentFrame * ({1, 0} if sprite.animDirection == .Horizontal else {0, 1})
+
 
     size := GetSpriteSize(sprite)
 

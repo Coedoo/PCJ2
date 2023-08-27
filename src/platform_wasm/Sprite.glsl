@@ -38,7 +38,8 @@ void main() {
     vec2 tp = rot * vec2(pos[i.x], pos[i.y]) + aPos;
 
     gl_Position = MVP * vec4(tp, 0, 1);
-    uv = vec2(texRect[i.x], texRect[i.y]) * OneOverAtlasSize;
+    // uv = vec2(texRect[i.x], texRect[i.y]) * OneOverAtlasSize;
+    uv = vec2(texRect[i.x], texRect[i.y]);
 }
 
 #elif defined(FRAGMENT)
@@ -50,9 +51,11 @@ in vec4 color;
 out vec4 FragColor;
 
 uniform sampler2D tex;
+uniform vec2 OneOverAtlasSize;
 
 void main() {
-    vec4 texColor = texture(tex, uv);
+    vec2 fUV = floor(uv) + smoothstep(0.0, 1.0, fract(uv) / fwidth(uv)) - 0.5;
+    vec4 texColor = texture(tex, fUV * OneOverAtlasSize);
 
     // @TODO: check if it causes performance hit
     if(color.a == 0.) discard;

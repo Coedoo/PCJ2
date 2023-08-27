@@ -105,7 +105,8 @@ CreateWall :: proc(pos: v2, sprite: dm.Sprite, layer: string) {
     wall, handle := CreateEntity()
 
     wall.position      = pos
-    wall.collisionSize = {1, 1}
+    wall.collisionSize = {1.01, 1.01}
+    wall.size = {1, 1}
 
     wall.flags = { .Wall }
 

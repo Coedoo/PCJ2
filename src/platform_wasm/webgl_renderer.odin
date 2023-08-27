@@ -71,7 +71,7 @@ InitRenderContext :: proc(ctx: ^dm.RenderContext) {
 
 
     texData := []u8{255, 255, 255, 255}
-    ctx.whiteTexture = CreateTexture(texData, 1, 1, 4, ctx)
+    ctx.whiteTexture = CreateTexture(texData, 1, 1, 4, ctx, .Point)
 
     CreateRectBatch(ctx, &ctx.defaultBatch, 2048)
     CreatePrimitiveBatch(ctx, 4086)
@@ -95,7 +95,7 @@ GetTextureInfo :: proc(handle: dm.TexHandle) -> (dm.TextureInfo, bool) {
     }
 }
 
-CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^dm.RenderContext) -> dm.TexHandle {
+CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^dm.RenderContext, filter: dm.TextureFilter) -> dm.TexHandle {
     handle := dm.CreateHandle(textures)
     texture := dm.GetElement(textures, handle)
 
@@ -106,10 +106,21 @@ CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^d
     texture.texId = gl.CreateTexture()
     gl.BindTexture(gl.TEXTURE_2D, texture.texId)
 
+    switch filter {
+    case .Point:
+        gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, i32(gl.NEAREST))
+        gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, i32(gl.NEAREST))
+
+    case .Bilinear:
+        gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, i32(gl.LINEAR))
+        gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, i32(gl.LINEAR))
+
+    case .Mip:
+        panic("Implement Me!")
+    }
+
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, i32(gl.CLAMP_TO_EDGE))
     gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, i32(gl.CLAMP_TO_EDGE))
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, i32(gl.NEAREST))
-    gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, i32(gl.NEAREST))
 
     gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, len(rawData), raw_data(rawData))
 

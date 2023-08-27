@@ -108,7 +108,7 @@ LoadDefaultFont :: proc(renderCtx: ^RenderContext) -> Font {
     // @NOTE: I'm not sure that's strong enough check
     if font.atlas.index == 0 {
         atlasData := base64.decode(ATLAS, allocator = context.temp_allocator)
-        font.atlas = renderCtx.CreateTexture(atlasData, ATLAS_SIZE, ATLAS_SIZE, 4, renderCtx)
+        font.atlas = renderCtx.CreateTexture(atlasData, ATLAS_SIZE, ATLAS_SIZE, 4, renderCtx, font.type == .SDF ? .Bilinear : .Point)
     }
 
     return font

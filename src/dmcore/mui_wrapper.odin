@@ -39,7 +39,7 @@ muiInit :: proc(renderCtx: ^dmcore.RenderContext) -> ^Mui {
         }
     }
 
-    mui.muiTextAtlas = renderCtx.CreateTexture(rgba8, mu.DEFAULT_ATLAS_WIDTH, mu.DEFAULT_ATLAS_HEIGHT, 4, renderCtx)
+    mui.muiTextAtlas = renderCtx.CreateTexture(rgba8, mu.DEFAULT_ATLAS_WIDTH, mu.DEFAULT_ATLAS_HEIGHT, 4, renderCtx, .Point)
 
     renderCtx.CreateRectBatch(renderCtx, &mui.muiBatch, 2048)
     mui.muiBatch.shader = renderCtx.defaultShaders[.ScreenSpaceRect]

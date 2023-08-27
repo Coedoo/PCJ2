@@ -163,7 +163,7 @@ CreateRenderContext :: proc(window: ^sdl.Window) -> ^dm.RenderContext {
     dm.InitResourcePool(&batches, 8)
 
     texData := []u8{255, 255, 255, 255}
-    ctx.whiteTexture = CreateTexture(texData, 1, 1, 4, ctx)
+    ctx.whiteTexture = CreateTexture(texData, 1, 1, 4, ctx, .Point)
 
     // ctx.defaultBatch = CreateRectBatch(&ctx, 8);
 
@@ -314,7 +314,7 @@ Texture_d3d :: struct {
     samplerState: ^d3d11.ISamplerState,
 }
 
-CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^dm.RenderContext) -> dm.TexHandle {
+CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^dm.RenderContext, filter: dm.TextureFilter) -> dm.TexHandle {
     ctx := cast(^RenderContext_d3d) renderCtx
 
     handle := cast (dm.TexHandle) dm.CreateHandle(textures)
@@ -343,11 +343,19 @@ CreateTexture :: proc(rawData: []u8, width, height, channels: i32, renderCtx: ^d
     ctx.device->CreateShaderResourceView(tex.texture, nil, &tex.textureView)
 
     samplerDesc := d3d11.SAMPLER_DESC{
-        Filter         = .MIN_MAG_MIP_POINT,
+        // Filter         = .MIN_MAG_MIP_POINT,
+        // Filter         = .MIN_MAG_MIP_LINEAR,
         AddressU       = .WRAP,
         AddressV       = .WRAP,
         AddressW       = .WRAP,
         ComparisonFunc = .NEVER,
+    }
+
+    switch filter {
+    case .Point: samplerDesc.Filter = .MIN_MAG_MIP_POINT
+    case .Bilinear: samplerDesc.Filter = .MIN_MAG_MIP_LINEAR
+    case .Mip:
+        panic("Implement Me!")
     }
 
     samplerState: ^d3d11.ISamplerState
@@ -563,6 +571,7 @@ DrawBatch :: proc(ctx: ^dm.RenderContext, batch: ^dm.RectBatch) {
     ctx.deviceContext->PSSetShader(shader.pixelShader, nil, 0)
     ctx.deviceContext->PSSetShaderResources(1, 1, &texture.textureView)
     ctx.deviceContext->PSSetSamplers(0, 1, &texture.samplerState)
+    ctx.deviceContext->PSSetConstantBuffers(1, 1, &batchRenderData.constBuffer)
 
     msr : d3d11.MAPPED_SUBRESOURCE
     ctx.deviceContext->Map(batchRenderData.d3dBuffer, 0, .WRITE_DISCARD, nil, &msr)

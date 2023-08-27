@@ -132,7 +132,7 @@ InitFontSDF :: proc(font: ^Font, fileName: string, fontSize: int) -> (bitmap: []
 
 LoadFontSDF :: proc(renderCtx: ^RenderContext, fileName: string, fontSize: int) -> (font: Font) {
     bitmap, bitmapSize := InitFontSDF(&font, fileName, fontSize)
-    font.atlas = renderCtx.CreateTexture(mem.slice_to_bytes(bitmap), bitmapSize, bitmapSize, 4, renderCtx)
+    font.atlas = renderCtx.CreateTexture(mem.slice_to_bytes(bitmap), bitmapSize, bitmapSize, 4, renderCtx, .Bilinear)
 
     return
 }
@@ -234,7 +234,7 @@ LoadFontFromFile :: proc(renderCtx: ^RenderContext, fileName: string, fontSize: 
         font.glyphData[i].advanceX = int(packedChars[i].xadvance)
     }
 
-    font.atlas = renderCtx.CreateTexture(mem.slice_to_bytes(colorBitmap), bitmapSize, bitmapSize, 4, renderCtx)
+    font.atlas = renderCtx.CreateTexture(mem.slice_to_bytes(colorBitmap), bitmapSize, bitmapSize, 4, renderCtx, .Bilinear)
 
     return
 }
