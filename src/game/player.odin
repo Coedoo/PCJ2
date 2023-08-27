@@ -35,6 +35,8 @@ PlayerState :: struct {
 
     jumpsLeftCount: int,
 
+    dashAvailble: bool,
+
     dashing: bool,
     dashPoint: v2,
 
@@ -61,6 +63,8 @@ CreatePlayerEntity :: proc() -> EntityHandle {
 
     player.pivot = {0.5, 0}
 
+    player.sprite = gameState.playerState.idleAnim
+
     return handle
 }
 
@@ -85,10 +89,11 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     doJump := dm.GetKeyState(globals.input, .Space) == .JustPressed
     // fmt.println(input)
 
-    if .Dash in abilities && dm.GetKeyState(globals.input, .LShift) == .JustPressed {
+    if .Dash in abilities && dashAvailble && dm.GetKeyState(globals.input, .LShift) == .JustPressed {
         dashing = true
         dashPoint = position + {facingDir * dashDistance, 0}
         velocity = 0
+        dashAvailble = false
     }
 
     targetVelX := dashing ? \
@@ -249,6 +254,10 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
 
     if collLeft || collRight {
         dashing = false
+    }
+
+    if collBot {
+        dashAvailble = true
     }
 
 

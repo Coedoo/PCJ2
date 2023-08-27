@@ -24,9 +24,9 @@ atlasFile := #load("../../assets/tiles.png")
 levelFile := #load("../../assets/level2.json", []byte)
 
 AbilityMessages: [PlayerAbility]string = {
-    .DoubleJump = "AAAAAAAA",
-    .WallClimb = "AAAAAAAA",
-    .WorldSwitch = "AAAAAAAA",
+    .WorldSwitch = "You Found: Potion!\n\nIt allows you to switch colored world tiles\n\nPress ARROW UP to activate",
+    .DoubleJump = "You Found: Gear!\n\nIt allows you to double jump!",
+    .WallClimb = "You Found: Lemon!\n\nYou can now climb walls for some reason...",
     .Dash = "AAAAAAAA",
 } 
 
@@ -52,6 +52,10 @@ GameState :: struct {
     showMessage: bool,
     message: string,
 
+    showPopup: bool,
+    popup: string,
+    popupTimer: f32,
+
     doFade: bool,
     fadeAmount: f32,
 
@@ -62,6 +66,9 @@ GameState :: struct {
 
     winSeq: bool,
     winSeqTimer: f32,
+
+    beersFound: int,
+    allBeersCount: int,
 }
 
 gameState: ^GameState
@@ -107,9 +114,21 @@ WinSequence :: proc() {
         gameState.fadeAmount = gameState.winSeqTimer / winSeqFadeTime
     }
     else {
+        message := `You have finally found 
+your six-pack!
+
+It also gives you ability to dash. 
+Press SHIFT to do it.
+
+Using DASH you can find 
+all hidden beer bottles.
+
+Press spacebar to continue
+
+`
         winSize := globals.renderCtx.frameSize
         gameState.fadeAmount = 1
-        dm.DrawTextCentered(globals.renderCtx, "SLKDFJSLKDJFLKSDFLK", gameState.font, winSize / 2, 32)
+        dm.DrawTextCentered(globals.renderCtx, message, gameState.font, winSize / 2, 25)
         
         if dm.GetKeyState(globals.input, .Space) == .JustPressed {
             gameState.winSeq = false
@@ -119,7 +138,20 @@ WinSequence :: proc() {
 }
 
 Raycast :: proc(ray: dm.Ray2D, maxDist: f32, layer: LevelLayer) -> (bool, f32) {
+    camPos := gameState.camera.position
+    camHeight := gameState.camera.orthoSize
+    camWidth  := gameState.camera.aspect * camHeight
+    cameraBounds := dm.Bounds2D{
+        camPos.x - camWidth, camPos.x + camWidth,
+        camPos.y - camHeight, camPos.y + camHeight,
+    }
+
     for e in gameState.entities.elements {
+        // bounds := dm.CreateBounds(e.position, e.size)
+        // if dm.CheckCollisionBounds(cameraBounds, bounds) == false {
+        //     continue
+        // }
+
         if .Wall in e.flags && (e.levelLayer == .Base || e.levelLayer == layer) {
             bounds := dm.CreateBounds(e.position, e.collisionSize)
             hit, dist := dm.RaycastAABB2D(ray, bounds, maxDist)
@@ -136,17 +168,44 @@ Raycast :: proc(ray: dm.Ray2D, maxDist: f32, layer: LevelLayer) -> (bool, f32) {
 @(export)
 GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     gameState = dm.AlocateGameData(platform, GameState)
-    dm.InitResourcePool(&gameState.entities, 1024)
+    dm.InitResourcePool(&gameState.entities, 2048 * 2)
+
+    // fmt.println(len(levelFile))
 
     gameState.characterTex = dm.LoadTextureFromMemory(characterAnimFile, globals.renderCtx, .Bilinear)
     gameState.atlasTex = dm.LoadTextureFromMemory(atlasFile, globals.renderCtx, .Bilinear)
     
     gameState.activeLayer = .L1
 
+    gameState.playerState.idleAnim = dm.CreateSprite(gameState.characterTex, {0, 4 * 64, 64, 64})
+    gameState.playerState.idleAnim.frames = 4
+    gameState.playerState.idleAnim.origin = {0.5, 1}
+    gameState.playerState.idleAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.runAnim = dm.CreateSprite(gameState.characterTex, {0, 0, 64, 64})
+    gameState.playerState.runAnim.frames = 8
+    gameState.playerState.runAnim.origin = {0.5, 1}
+    gameState.playerState.runAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.jumpAnim = dm.CreateSprite(gameState.characterTex, {0, 3 * 64, 64, 64})
+    gameState.playerState.jumpAnim.frames = 3
+    gameState.playerState.jumpAnim.origin = {0.5, 1}
+    gameState.playerState.jumpAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.dashAnim = dm.CreateSprite(gameState.characterTex, {0, 2 * 64, 64, 64})
+    gameState.playerState.dashAnim.frames = 3
+    gameState.playerState.dashAnim.origin = {0.5, 1}
+    gameState.playerState.dashAnim.animDirection = dm.Axis.Horizontal
+
+    gameState.playerState.idleAnim.scale = 2
+    gameState.playerState.dashAnim.scale = 2
+    gameState.playerState.jumpAnim.scale = 2
+    gameState.playerState.runAnim.scale = 2
+
     /////
     gameState.camera = dm.CreateCamera(7, 800./600., 0.01, 100)
     gameState.camera.position.z = 1
-
+ 
     gameState.font = dm.LoadDefaultFont(platform.renderCtx)
 
     // player.position = {3, 10}
@@ -205,6 +264,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
                                 case "Checkpoint": e.triggerType = .Checkpoint
                                 case "Damageable": e.triggerType = .Damageable
                                 case "Win":        e.triggerType = .GameWin
+                                case "Beer":       e.triggerType = .Beer; gameState.allBeersCount += 1
                                 case "Ability": {
                                     e.triggerType = .Ability
 
@@ -234,40 +294,27 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
     when ODIN_DEBUG {
         // gameState.playerState.abilities = {.DoubleJump, .Dash, .WorldSwitch, .WallClimb}
-        gameState.playerState.abilities = {.WorldSwitch, .WallClimb }
+        // gameState.playerState.abilities = {.WorldSwitch, .WallClimb }
     }
 
-    gameState.playerState.idleAnim = dm.CreateSprite(gameState.characterTex, {0, 4 * 64, 64, 64})
-    gameState.playerState.idleAnim.frames = 4
-    gameState.playerState.idleAnim.origin = {0.5, 1}
-    gameState.playerState.idleAnim.animDirection = dm.Axis.Horizontal
+    ShowMessage(`"It's just Wednesday, 
+but there is no more beers in the Basement"
+Tenma Thought and venture into the Phase World
+in search of the golden liquid.
 
-    gameState.playerState.runAnim = dm.CreateSprite(gameState.characterTex, {0, 0, 64, 64})
-    gameState.playerState.runAnim.frames = 8
-    gameState.playerState.runAnim.origin = {0.5, 1}
-    gameState.playerState.runAnim.animDirection = dm.Axis.Horizontal
 
-    gameState.playerState.jumpAnim = dm.CreateSprite(gameState.characterTex, {0, 3 * 64, 64, 64})
-    gameState.playerState.jumpAnim.frames = 3
-    gameState.playerState.jumpAnim.origin = {0.5, 1}
-    gameState.playerState.jumpAnim.animDirection = dm.Axis.Horizontal
-
-    gameState.playerState.dashAnim = dm.CreateSprite(gameState.characterTex, {0, 2 * 64, 64, 64})
-    gameState.playerState.dashAnim.frames = 3
-    gameState.playerState.dashAnim.origin = {0.5, 1}
-    gameState.playerState.dashAnim.animDirection = dm.Axis.Horizontal
-
-    gameState.playerState.idleAnim.scale = 2
-    gameState.playerState.dashAnim.scale = 2
-    gameState.playerState.jumpAnim.scale = 2
-    gameState.playerState.runAnim.scale = 2
-
-    // ShowMessage("Kappa")
+Press spacebar to continue`)
 }
 
 ShowMessage :: proc(message: string) {
     gameState.message = message
     gameState.showMessage = true
+}
+
+ShowPopup :: proc(message: string) {
+    gameState.popup = message
+    gameState.showPopup = true
+    gameState.popupTimer = popupTime
 }
 
 @(export)
@@ -308,8 +355,12 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                     switch e.triggerType {
                     case .None:
                     case .Checkpoint:
-                        gameState.lastCheckpointPosition = e.position
-                        gameState.lastCheckpointHandle = e.handle
+                        if gameState.lastCheckpointHandle != e.handle {
+                            gameState.lastCheckpointPosition = e.position
+                            gameState.lastCheckpointHandle = e.handle
+
+                            ShowPopup("Checkpoint  Reached!")
+                        }
 
                     case .Damageable:
                         gameState.deathSeq = true
@@ -318,13 +369,28 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                         if e.pickupAbility not_in gameState.playerState.abilities {
                             gameState.playerState.abilities += { e.pickupAbility }
                             ShowMessage(AbilityMessages[e.pickupAbility])
+
+                            DestroyEntity(e.handle)
                         }
-                    
+
+                    case .Beer: 
+                        gameState.beersFound += 1
+                        DestroyEntity(e.handle)
+
+                        if gameState.beersFound == gameState.allBeersCount {
+                            ShowPopup("All beers found!")
+                        }
+                        else {
+                            @static buf: [64]u8
+                            ShowPopup(fmt.bprint(buf[:], "Beer found! ", gameState.beersFound, "/", gameState.allBeersCount))
+                        }
 
                     case .GameWin:
                         if gameState.winCondition == false {
                             gameState.winSeq = true
                             gameState.winCondition = true
+
+                            gameState.playerState.abilities += { .Dash }
                         }
                     }
                 }
@@ -424,7 +490,7 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
     gameState := cast(^GameState) state
 
-    dm.ClearColor(renderCtx, {0.5, 0.5, 0.6, 1})
+    dm.ClearColor(renderCtx, {0.5, 0.5, 0.7, 1})
     dm.SetCamera(renderCtx, gameState.camera)
 
     camPos := gameState.camera.position
@@ -451,6 +517,10 @@ GameRender : dm.GameRender : proc(state: rawptr) {
             tint.a = 0.5
         }
 
+        if e.triggerType == .Checkpoint && gameState.lastCheckpointHandle != e.handle {
+            tint.a = 0.5
+        }
+
         dm.DrawSprite(renderCtx, e.sprite, e.position, 0, tint)
 
         when ODIN_DEBUG {
@@ -463,10 +533,34 @@ GameRender : dm.GameRender : proc(state: rawptr) {
     }
 
     if gameState.showMessage {
-        windowSize := globals.renderCtx.frameSize
+        fontSize :: 18
 
-        dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(windowSize / 2), {500, 400}, color = {0, 0, 0, .86})
-        dm.DrawTextCentered(renderCtx, gameState.message, gameState.font, windowSize / 2, 64)
+        windowSize := globals.renderCtx.frameSize
+        textSize := dm.v2Conv(dm.MeasureText(gameState.message, gameState.font, fontSize))
+
+        dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(windowSize / 2), textSize + {50, 50}, color = {0, 0, 0, .86})
+        dm.DrawTextCentered(renderCtx, gameState.message, gameState.font, windowSize / 2, fontSize)
+    }
+
+    if gameState.showPopup {
+        fontSize :: 12
+
+        windowSize := globals.renderCtx.frameSize
+        textSize := dm.v2Conv(dm.MeasureText(gameState.popup, gameState.font, fontSize))
+
+        pos := iv2{windowSize.x / 2, windowSize.y - 70}
+
+        dm.DrawRectSize(renderCtx, 
+            renderCtx.whiteTexture, 
+            dm.v2Conv(pos),
+            textSize + {10, 10}, color = {0, 0, 0, .86})
+        
+        dm.DrawTextCentered(renderCtx, gameState.popup, gameState.font, pos, fontSize)
+
+        gameState.popupTimer -= time.deltaTime
+        if gameState.popupTimer < 0 {
+            gameState.showPopup = false
+        }
     }
 
 
@@ -485,5 +579,7 @@ GameRender : dm.GameRender : proc(state: rawptr) {
     if gameState.winSeq {
         WinSequence()
     }
+
+    dm.DrawText(renderCtx, fmt.tprint(1 / time.deltaTime), gameState.font, {0, 0})
 
 }

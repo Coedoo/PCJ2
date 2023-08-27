@@ -27,6 +27,7 @@ TriggerType :: enum {
     Damageable,
     Ability,
     GameWin,
+    Beer,
 }
 
 LevelLayer :: enum {

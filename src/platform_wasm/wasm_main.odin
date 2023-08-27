@@ -41,7 +41,7 @@ main :: proc() {
     gameCode.GameLoad(&platform)
 
     platform.time.ticksStart = cast(u32) coreTime.now()._nsec
-    fmt.println(platform.time.ticksStart)
+    // fmt.println(platform.time.ticksStart)
 }
 
 @(export, link_name="step")

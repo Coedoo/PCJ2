@@ -50,13 +50,13 @@ DrawSprite :: proc(ctx: ^RenderContext, sprite: Sprite, position: v2,
     if sprite.animDirection == .Horizontal {
         texPos.x += sprite.pixelSize.x * sprite.currentFrame
         if texPos.x >= texInfo.width {
-            texPos.x = texPos.x % texInfo.width
+            texPos.x = texPos.x % max(texInfo.width, 1)
         }
     }
     else {
         texPos.y += sprite.pixelSize.y * sprite.currentFrame
         if texPos.y >= texInfo.height {
-            texPos.y = texPos.y % texInfo.height
+            texPos.y = texPos.y % max(texInfo.height, 1)
         }
     }
 

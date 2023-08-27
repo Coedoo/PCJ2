@@ -6,7 +6,7 @@ import "core:runtime"
 wasmContext: runtime.Context
 
 // @TODO make it configurable
-tempBackingBuffer: [4 * mem.Megabyte]byte
+tempBackingBuffer: [8 * mem.Megabyte]byte
 tempArena: mem.Arena
 
 
