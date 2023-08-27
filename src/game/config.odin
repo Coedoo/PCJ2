@@ -19,3 +19,7 @@ skinWidth :: 0.035
 raysPerCharacter :: 3
 
 cameraFocusBoxSize :: v2{3, 4}
+
+////
+
+deathSeqFadeTime :: 0.3

@@ -38,6 +38,7 @@ PlayerState :: struct {
     dashing: bool,
     dashPoint: v2,
 
+    idleAnim: dm.Sprite,
     runAnim: dm.Sprite,
     jumpAnim: dm.Sprite,
     dashAnim: dm.Sprite,
@@ -67,6 +68,9 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     using player
     using playerState
 
+    if gameState.deathSeq {
+        return
+    }
 
     gravity   := -(2 * jumpHeight) / (jumpTime * jumpTime);
     jumpSpeed := -gravity * jumpTime;
@@ -278,10 +282,12 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     else if velocity.x * velocity.x + velocity.y * velocity.y > math.F32_EPSILON {
         movementState = .Run
         player.sprite = runAnim
-        dm.AnimateSprite(&sprite, cast(f32) globals.time.time, 0.1)
+        dm.AnimateSprite(&sprite, cast(f32) globals.time.time, 0.15)
     }
     else {
         movementState = .Idle
+        player.sprite = idleAnim
+        dm.AnimateSprite(&sprite, cast(f32) globals.time.time, 0.2)
     }
 
     sprite.flipX = facingDir != 1

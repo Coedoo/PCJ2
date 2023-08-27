@@ -26,6 +26,7 @@ TriggerType :: enum {
     Checkpoint,
     Damageable,
     Ability,
+    GameWin,
 }
 
 LevelLayer :: enum {

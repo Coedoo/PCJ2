@@ -51,9 +51,45 @@ GameState :: struct {
 
     showMessage: bool,
     message: string,
+
+    doFade: bool,
+    fadeAmount: f32,
+
+    deathSeq: bool,
+    deathSeqTimer: f32,
 }
 
 gameState: ^GameState
+
+///////////////
+
+DeathSequence :: proc() {
+    assert(gameState.deathSeq)
+
+    gameState.doFade = true
+
+    if gameState.deathSeqTimer < deathSeqFadeTime {
+        gameState.deathSeqTimer += f32(globals.time.deltaTime)
+
+        gameState.fadeAmount = gameState.deathSeqTimer / deathSeqFadeTime
+    }
+    else if gameState.deathSeqTimer < 2 * deathSeqFadeTime {
+        gameState.deathSeqTimer += f32(globals.time.deltaTime)
+
+        player := dm.GetElement(gameState.entities, gameState.playerHandle)
+        player.position = gameState.lastCheckpointPosition
+
+        gameState.fadeAmount = 1 - (gameState.deathSeqTimer - deathSeqFadeTime) / deathSeqFadeTime
+    }
+    else {
+        gameState.doFade = false
+        gameState.deathSeq = false
+        gameState.deathSeqTimer = 0
+
+        player := dm.GetElement(gameState.entities, gameState.playerHandle)
+        player.velocity = 0
+    }
+}
 
 Raycast :: proc(ray: dm.Ray2D, maxDist: f32, layer: LevelLayer) -> (bool, f32) {
     for e in gameState.entities.elements {
@@ -172,6 +208,11 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
         gameState.playerState.abilities = {.WorldSwitch, .WallClimb }
     }
 
+    gameState.playerState.idleAnim = dm.CreateSprite(gameState.characterTex, {0, 4 * 64, 64, 64})
+    gameState.playerState.idleAnim.frames = 4
+    gameState.playerState.idleAnim.origin = {0.5, 1}
+    gameState.playerState.idleAnim.animDirection = dm.Axis.Horizontal
+
     gameState.playerState.runAnim = dm.CreateSprite(gameState.characterTex, {0, 0, 64, 64})
     gameState.playerState.runAnim.frames = 8
     gameState.playerState.runAnim.origin = {0.5, 1}
@@ -187,6 +228,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
     gameState.playerState.dashAnim.origin = {0.5, 1}
     gameState.playerState.dashAnim.animDirection = dm.Axis.Horizontal
 
+    gameState.playerState.idleAnim.scale = 2
     gameState.playerState.dashAnim.scale = 2
     gameState.playerState.jumpAnim.scale = 2
     gameState.playerState.runAnim.scale = 2
@@ -213,6 +255,10 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         }
     }
 
+    if gameState.deathSeq {
+        DeathSequence()
+    }
+
 
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
@@ -237,20 +283,22 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                 if dm.CheckCollisionBounds(aBounds, bBounds) {
                     switch e.triggerType {
                     case .None:
-                    case .Checkpoint: {
+                    case .Checkpoint:
                         gameState.lastCheckpointPosition = e.position
                         gameState.lastCheckpointHandle = e.handle
-                    }
-                    case .Damageable: {
-                        player.position = gameState.lastCheckpointPosition
-                    }
 
-                    case .Ability: {
+                    case .Damageable:
+                        gameState.deathSeq = true
+
+                    case .Ability: 
                         if e.pickupAbility not_in gameState.playerState.abilities {
                             gameState.playerState.abilities += { e.pickupAbility }
                             ShowMessage(AbilityMessages[e.pickupAbility])
                         }
-                    }
+                    
+
+                    case .GameWin:
+                        
                     }
                 }
             }
@@ -392,5 +440,13 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
         dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(windowSize / 2), {500, 400}, color = {0, 0, 0, .86})
         dm.DrawTextCentered(renderCtx, gameState.message, gameState.font, windowSize / 2, 64)
+    }
+
+
+    if gameState.doFade {
+        c := dm.BLACK
+        c.a = gameState.fadeAmount
+
+        dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(renderCtx.frameSize / 2), dm.v2Conv(renderCtx.frameSize), color = c)
     }
 }
