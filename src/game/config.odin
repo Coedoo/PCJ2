@@ -23,3 +23,4 @@ cameraFocusBoxSize :: v2{3, 4}
 ////
 
 deathSeqFadeTime :: 0.3
+winSeqFadeTime :: 1

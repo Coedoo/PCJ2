@@ -57,6 +57,11 @@ GameState :: struct {
 
     deathSeq: bool,
     deathSeqTimer: f32,
+
+    winCondition: bool,
+
+    winSeq: bool,
+    winSeqTimer: f32,
 }
 
 gameState: ^GameState
@@ -88,6 +93,28 @@ DeathSequence :: proc() {
 
         player := dm.GetElement(gameState.entities, gameState.playerHandle)
         player.velocity = 0
+    }
+}
+
+WinSequence :: proc() {
+    assert(gameState.winSeq)
+
+    gameState.doFade = true
+
+    if gameState.winSeqTimer < winSeqFadeTime {
+        gameState.winSeqTimer += globals.time.deltaTime
+
+        gameState.fadeAmount = gameState.winSeqTimer / winSeqFadeTime
+    }
+    else {
+        winSize := globals.renderCtx.frameSize
+        gameState.fadeAmount = 1
+        dm.DrawTextCentered(globals.renderCtx, "SLKDFJSLKDJFLKSDFLK", gameState.font, winSize / 2, 32)
+        
+        if dm.GetKeyState(globals.input, .Space) == .JustPressed {
+            gameState.winSeq = false
+            gameState.doFade = false
+        }
     }
 }
 
@@ -176,6 +203,7 @@ GameLoad : dm.GameLoad : proc(platform: ^dm.Platform) {
 
                                 case "Checkpoint": e.triggerType = .Checkpoint
                                 case "Damageable": e.triggerType = .Damageable
+                                case "Win":        e.triggerType = .GameWin
                                 case "Ability": {
                                     e.triggerType = .Ability
 
@@ -255,11 +283,6 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
         }
     }
 
-    if gameState.deathSeq {
-        DeathSequence()
-    }
-
-
     player := dm.GetElement(gameState.entities, gameState.playerHandle)
 
     // player collisions
@@ -298,7 +321,10 @@ GameUpdate : dm.GameUpdate : proc(state: rawptr) {
                     
 
                     case .GameWin:
-                        
+                        if gameState.winCondition == false {
+                            gameState.winSeq = true
+                            gameState.winCondition = true
+                        }
                     }
                 }
             }
@@ -403,6 +429,7 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
     gameState := cast(^GameState) state
 
+
     dm.InputDebugWindow(input, mui)
 
     dm.ClearColor(renderCtx, {0.5, 0.5, 0.6, 1})
@@ -449,4 +476,14 @@ GameRender : dm.GameRender : proc(state: rawptr) {
 
         dm.DrawRectSize(renderCtx, renderCtx.whiteTexture, dm.v2Conv(renderCtx.frameSize / 2), dm.v2Conv(renderCtx.frameSize), color = c)
     }
+
+    // @HACK: it feels wrong to put it here, but it works I guess...
+    if gameState.deathSeq {
+        DeathSequence()
+    }
+
+    if gameState.winSeq {
+        WinSequence()
+    }
+
 }

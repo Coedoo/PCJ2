@@ -68,7 +68,7 @@ ControlPlayer :: proc(player: ^Entity, playerState: ^PlayerState) {
     using player
     using playerState
 
-    if gameState.deathSeq {
+    if gameState.deathSeq || gameState.winSeq {
         return
     }
 
